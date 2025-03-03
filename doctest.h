@@ -581,7 +581,7 @@ DOCTEST_INTERFACE extern bool is_running_in_test;
 // - back/front
 // - iterator stuff
 // - find & friends
-// - push_back/pop_back
+// - emplace_back/pop_back
 // - assign/insert/erase
 // - relational operators as free functions - taking const char* as one of the params
 class DOCTEST_INTERFACE String
@@ -3339,7 +3339,7 @@ namespace detail {
 
     public:
         std::ostream* push() {
-            stack.push_back(ss.tellp());
+            stack.emplace_back(ss.tellp());
             return &ss;
         }
 
@@ -4212,7 +4212,7 @@ namespace detail {
                 // Going down.
                 if (checkFilters()) { return; }
 
-                g_cs->subcaseStack.push_back(m_signature);
+                g_cs->subcaseStack.emplace_back(m_signature);
                 g_cs->currentSubcaseDepth++;
                 m_entered = true;
                 DOCTEST_ITERATE_THROUGH_REPORTERS(subcase_start, m_signature);
@@ -4231,7 +4231,7 @@ namespace detail {
                 g_cs->nextSubcaseStack.clear();
                 g_cs->nextSubcaseStack.insert(g_cs->nextSubcaseStack.end(),
                     g_cs->subcaseStack.begin(), g_cs->subcaseStack.begin() + g_cs->currentSubcaseDepth);
-                g_cs->nextSubcaseStack.push_back(m_signature);
+                g_cs->nextSubcaseStack.emplace_back(m_signature);
             }
         }
     }
@@ -4572,13 +4572,13 @@ namespace detail {
     void registerExceptionTranslatorImpl(const IExceptionTranslator* et) {
         if(std::find(getExceptionTranslators().begin(), getExceptionTranslators().end(), et) ==
            getExceptionTranslators().end())
-            getExceptionTranslators().push_back(et);
+            getExceptionTranslators().emplace_back(et);
     }
 
     DOCTEST_THREAD_LOCAL std::vector<IContextScope*> g_infoContexts; // for logging with INFO()
 
     ContextScopeBase::ContextScopeBase() {
-        g_infoContexts.push_back(this);
+        g_infoContexts.emplace_back(this);
     }
 
     ContextScopeBase::ContextScopeBase(ContextScopeBase&& other) noexcept {
@@ -4586,7 +4586,7 @@ namespace detail {
             other.destroy();
         }
         other.need_to_destroy = false;
-        g_infoContexts.push_back(this);
+        g_infoContexts.emplace_back(this);
     }
 
     DOCTEST_MSVC_SUPPRESS_WARNING_WITH_PUSH(4996) // std::uncaught_exception is deprecated in C++17
@@ -4604,7 +4604,7 @@ namespace detail {
 #endif
             std::ostringstream s;
             this->stringify(&s);
-            g_cs->stringifiedContexts.push_back(s.str().c_str());
+            g_cs->stringifiedContexts.emplace_back(s.str().c_str());
         }
         g_infoContexts.pop_back();
     }
@@ -5315,7 +5315,7 @@ namespace {
         ensureTagClosed();
         newlineIfNecessary();
         m_os << m_indent << '<' << name;
-        m_tags.push_back( name );
+        m_tags.emplace_back( name );
         m_indent += "  ";
         m_tagIsOpen = true;
         return *this;
@@ -5886,7 +5886,7 @@ namespace {
         }
 
         void subcase_start(const SubcaseSignature& in) override {
-            deepestSubcaseStackNames.push_back(in.m_name);
+            deepestSubcaseStackNames.emplace_back(in.m_name);
         }
 
         void subcase_end() override {}
@@ -6363,7 +6363,7 @@ namespace {
         }
 
         void subcase_start(const SubcaseSignature& subc) override {
-            subcasesStack.push_back(subc);
+            subcasesStack.emplace_back(subc);
             ++currentSubcaseLevel;
             hasLoggedCurrentTestStart = false;
         }
@@ -6509,7 +6509,7 @@ namespace {
             auto flush = [&s, &res]() {
                 auto string = s.str();
                 if(string.size() > 0) {
-                    res.push_back(string.c_str());
+                    res.emplace_back(string.c_str());
                 }
                 s.str("");
             };
@@ -6845,12 +6845,12 @@ int Context::run() {
 
     // setup default reporter if none is given through the command line
     if(p->filters[8].empty())
-        p->filters[8].push_back("console");
+        p->filters[8].emplace_back("console");
 
     // check to see if any of the registered reporters has been selected
     for(auto& curr : getReporters()) {
         if(matchesAny(curr.first.second.c_str(), p->filters[8], false, p->case_sensitive))
-            p->reporters_currently_used.push_back(curr.second(*g_cs));
+            p->reporters_currently_used.emplace_back(curr.second(*g_cs));
     }
 
     // TODO: check if there is nothing in reporters_currently_used
@@ -6861,7 +6861,7 @@ int Context::run() {
 
 #ifdef DOCTEST_PLATFORM_WINDOWS
     if(isDebuggerActive() && p->no_debug_output == false)
-        p->reporters_currently_used.push_back(new DebugOutputWindowReporter(*g_cs));
+        p->reporters_currently_used.emplace_back(new DebugOutputWindowReporter(*g_cs));
 #endif // DOCTEST_PLATFORM_WINDOWS
 
     // handle version, help and no_run
@@ -6873,7 +6873,7 @@ int Context::run() {
 
     std::vector<const TestCase*> testArray;
     for(auto& curr : getRegisteredTests())
-        testArray.push_back(&curr);
+        testArray.emplace_back(&curr);
     p->numTestCases = testArray.size();
 
     // sort the collected records
@@ -6952,14 +6952,14 @@ int Context::run() {
 
         // print the name of the test and don't execute it
         if(p->list_test_cases) {
-            queryResults.push_back(&tc);
+            queryResults.emplace_back(&tc);
             continue;
         }
 
         // print the name of the test suite if not done already and don't execute it
         if(p->list_test_suites) {
             if((testSuitesPassingFilt.count(tc.m_test_suite) == 0) && tc.m_test_suite[0] != '\0') {
-                queryResults.push_back(&tc);
+                queryResults.emplace_back(&tc);
                 testSuitesPassingFilt.insert(tc.m_test_suite);
                 p->numTestSuitesPassingFilters++;
             }

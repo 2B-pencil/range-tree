@@ -27,154 +27,158 @@
 #include <doctest.h>
 
 namespace RT = RangeTree;
-
 typedef RT::Point<double, int> Point;
 typedef RT::Point<double, int>* PtrToPoint;
 typedef RT::SortedPointMatrix<double, int> SortedPointMatrix;
 
-TEST_CASE("works_with_1_dim")
+TEST_CASE("sorted_points_matrix_test")
 {
-    std::vector<double> values = {3.0, 1.0, 2.0, 11.0, 5.0, 11.0};
-    std::vector<int> counts = {1, 3, 4, 1, 2, 1};
-    std::vector<double> sortedValues = {1.0, 2.0, 3.0, 5.0, 11.0};
-    std::vector<int> sortedCounts = {3, 4, 1, 2, 2};
-    std::vector<PtrToPoint> points = {};
+    SUBCASE("works_with_1_dim")
+    {
+        std::vector<double> values = { 3.0, 1.0, 2.0, 11.0, 5.0, 11.0 };
+        std::vector<int> counts = { 1, 3, 4, 1, 2, 1 };
+        std::vector<double> sortedValues = { 1.0, 2.0, 3.0, 5.0, 11.0 };
+        std::vector<int> sortedCounts = { 3, 4, 1, 2, 2 };
+        std::vector<PtrToPoint> points = {};
 
-    auto f = [](double a) { std::vector<double> b = {a}; return b;};
-    for (int i = 0; i < values.size(); i++) {
-        Point* a = new Point(f(values[i]), values[i] + 1);
-        a->increaseCountBy(counts[i] - 1);
-        points.push_back(PtrToPoint(a));
+        auto f = [](double a) { std::vector<double> b = { a }; return b; };
+        for (int i = 0; i < values.size(); i++) {
+            Point* a = new Point(f(values[i]), (int)values[i] + 1);
+            a->increaseCountBy(counts[i] - 1);
+            points.push_back(PtrToPoint(a));
+        }
+
+        SortedPointMatrix spm(points);
+        auto sortedPoints = spm.getSortedPointsAtCurrentDim();
+
+        CHECK_EQ(spm.numUniquePoints(), sortedValues.size());
+        CHECK_EQ(sortedPoints.size(), sortedValues.size());
+
+        for (int i = 0; i < spm.numUniquePoints(); i++) {
+            CHECK_EQ(sortedPoints[i]->asVector(), f(sortedValues[i]));
+            CHECK_EQ(sortedPoints[i]->value(), sortedValues[i] + 1);
+            CHECK_EQ(sortedPoints[i]->count(), sortedCounts[i]);
+        }
+
+        CHECK_EQ(spm.getMidPoint()->asVector(), f(3.0));
+        auto pairOfSPMs = spm.splitOnMid();
+        auto leftSPM = pairOfSPMs.first;
+        auto rightSPM = pairOfSPMs.second;
+        CHECK_EQ(leftSPM.numUniquePoints(), 3);
+        CHECK_EQ(rightSPM.numUniquePoints(), 2);
+        CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[0]->asVector()[0], 1.0);
+        CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->asVector()[0], 2.0);
+        CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[2]->asVector()[0], 3.0);
+        CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->count(), 4);
+        CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->value(), 3.0);
     }
 
-    SortedPointMatrix spm(points);
-    auto sortedPoints = spm.getSortedPointsAtCurrentDim();
+    SUBCASE("works_with_3_dim")
+    {
+        std::vector<double> pt0 = { 3.0, 4.0, 1.0 };
+        std::vector<double> pt1 = { 5.0, 2.0, 8.0 };
+        std::vector<double> pt2 = { 2.0, 9.0, 3.0 };
+        std::vector<double> pt3 = { 3.0, 4.0, 1.0 };
+        std::vector<std::vector<double> > pts = { pt0, pt1, pt2, pt3 };
 
-    CHECK_EQ(spm.numUniquePoints(), sortedValues.size());
-    CHECK_EQ(sortedPoints.size(), sortedValues.size());
+        std::vector<int> values = { 1,2,3,1 };
+        std::vector<int> counts = { 1,3,1,1 };
 
-    for (int i = 0; i < spm.numUniquePoints(); i++) {
-        CHECK_EQ(sortedPoints[i]->asVector(), f(sortedValues[i]));
-        CHECK_EQ(sortedPoints[i]->value(), sortedValues[i] + 1);
-        CHECK_EQ(sortedPoints[i]->count(), sortedCounts[i]);
+        auto f = [](double a) { std::vector<double> b = { a }; return b; };
+        std::vector<PtrToPoint> points0 = {};
+        std::vector<PtrToPoint> points1 = {};
+        for (int i = 0; i < values.size(); i++) {
+            Point* a0 = new Point(pts[i], values[i]);
+            Point* a1 = new Point(pts[i], values[i]);
+            a0->increaseCountBy(counts[i] - 1);
+            a1->increaseCountBy(counts[i] - 1);
+            points0.push_back(PtrToPoint(a0));
+            points1.push_back(PtrToPoint(a1));
+        }
+
+        SortedPointMatrix spm(points0);
+        std::vector<double> sorted0 = { 2.0, 3.0, 5.0 };
+        std::vector<double> sorted1 = { 2.0, 4.0, 9.0 };
+        std::vector<double> sorted2 = { 1.0, 3.0, 8.0 };
+
+        auto g = [](std::vector<PtrToPoint> pts, int dim) {
+            std::vector<double> a;
+            for (int i = 0; i < pts.size(); i++) { a.push_back(pts[i]->asVector()[dim]); }
+            return a;
+            };
+
+        CHECK_EQ(spm.numUniquePoints(), 3);
+        CHECK_EQ(spm.getSortedPointsAtCurrentDim()[1]->count(), 2);
+        CHECK_EQ(g(spm.getSortedPointsAtCurrentDim(), 0), sorted0);
+
+        spm.moveToNextDimension();
+        CHECK_EQ(g(spm.getSortedPointsAtCurrentDim(), 1), sorted1);
+
+        spm.moveToNextDimension();
+        CHECK_EQ(g(spm.getSortedPointsAtCurrentDim(), 2), sorted2);
+
+        spm = SortedPointMatrix(points1);
+
+        auto pairOfSPMs = spm.splitOnMid();
+        auto leftSPM = pairOfSPMs.first;
+        auto rightSPM = pairOfSPMs.second;
+
+        CHECK_EQ(leftSPM.numUniquePoints(), 2);
+        CHECK_EQ(rightSPM.numUniquePoints(), 1);
+
+        std::vector<double> leftSorted0 = { 2.0, 3.0 };
+        std::vector<double> leftSorted1 = { 4.0, 9.0 };
+        std::vector<double> leftSorted2 = { 1.0, 3.0 };
+
+        CHECK_EQ(leftSPM.numUniquePoints(), 2);
+        CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->count(), 2);
+        CHECK_EQ(g(leftSPM.getSortedPointsAtCurrentDim(), 0), leftSorted0);
+
+        leftSPM.moveToNextDimension();
+        CHECK_EQ(g(leftSPM.getSortedPointsAtCurrentDim(), 1), leftSorted1);
+
+        auto leftLeftSPM = leftSPM.splitOnMid().first;
+        std::vector<double> leftSorted11 = { 4.0 };
+        std::vector<double> leftSorted21 = { 1.0 };
+        CHECK_EQ(leftLeftSPM.getMidPoint()->asVector()[1], 4);
+        CHECK_EQ(g(leftLeftSPM.getSortedPointsAtCurrentDim(), 1), leftSorted11);
+        leftLeftSPM.moveToNextDimension();
+        CHECK_EQ(g(leftLeftSPM.getSortedPointsAtCurrentDim(), 2), leftSorted21);
+
+        std::vector<double> rightSorted0 = { 5.0 };
+        std::vector<double> rightSorted1 = { 2.0 };
+        std::vector<double> rightSorted2 = { 8.0 };
+
+        CHECK_EQ(rightSPM.numUniquePoints(), 1);
+        CHECK_EQ(rightSPM.getSortedPointsAtCurrentDim()[0]->count(), 3);
+        CHECK_EQ(g(rightSPM.getSortedPointsAtCurrentDim(), 0), rightSorted0);
+        rightSPM.moveToNextDimension();
+        CHECK_EQ(g(rightSPM.getSortedPointsAtCurrentDim(), 1), rightSorted1);
+        rightSPM.moveToNextDimension();
+        CHECK_EQ(g(rightSPM.getSortedPointsAtCurrentDim(), 2), rightSorted2);
+
+
+        /*CHECK_EQ(spm.numUniquePoints(), sortedValues.size());
+        CHECK_EQ(sortedPoints.size(), sortedValues.size());
+
+        for (int i = 0; i < spm.numUniquePoints(); i++) {
+            CHECK_EQ(sortedPoints[i]->asVector(), f(sortedValues[i]));
+            CHECK_EQ(sortedPoints[i]->value(), sortedValues[i] + 1);
+            CHECK_EQ(sortedPoints[i]->count(), sortedCounts[i]);
+        }
+
+        CHECK_EQ(spm.getMidPoint()->asVector(), f(3.0));
+        auto pairOfSPMs = spm.splitOnMid();
+        auto leftSPM = pairOfSPMs.first;
+        auto rightSPM = pairOfSPMs.second;
+        CHECK_EQ(leftSPM.numUniquePoints(), 3);
+        CHECK_EQ(rightSPM.numUniquePoints(), 2);
+        CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[0]->asVector()[0], 1.0);
+        CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[1]->asVector()[0], 2.0);
+        CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[2]->asVector()[0], 3.0);
+        CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[1]->count(), 4);
+        CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[1]->value(), 3.0);*/
     }
-
-    CHECK_EQ(spm.getMidPoint()->asVector(), f(3.0));
-    auto pairOfSPMs = spm.splitOnMid();
-    auto leftSPM = pairOfSPMs.first;
-    auto rightSPM = pairOfSPMs.second;
-    CHECK_EQ(leftSPM.numUniquePoints(), 3);
-    CHECK_EQ(rightSPM.numUniquePoints(), 2);
-    CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[0]->asVector()[0], 1.0);
-    CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->asVector()[0], 2.0);
-    CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[2]->asVector()[0], 3.0);
-    CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->count(), 4);
-    CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->value(), 3.0);
 }
 
-TEST_CASE("works_with_3_dim")
-{
-    std::vector<double> pt0 = {3.0, 4.0, 1.0};
-    std::vector<double> pt1 = {5.0, 2.0, 8.0};
-    std::vector<double> pt2 = {2.0, 9.0, 3.0};
-    std::vector<double> pt3 = {3.0, 4.0, 1.0};
-    std::vector<std::vector<double> > pts = {pt0, pt1, pt2, pt3};
 
-    std::vector<int> values = {1,2,3,1};
-    std::vector<int> counts = {1,3,1,1};
-
-    auto f = [](double a) { std::vector<double> b = {a}; return b;};
-    std::vector<PtrToPoint> points0 = {};
-    std::vector<PtrToPoint> points1 = {};
-    for (int i = 0; i < values.size(); i++) {
-        Point* a0 = new Point(pts[i], values[i]);
-        Point* a1 = new Point(pts[i], values[i]);
-        a0->increaseCountBy(counts[i] - 1);
-        a1->increaseCountBy(counts[i] - 1);
-        points0.push_back(PtrToPoint(a0));
-        points1.push_back(PtrToPoint(a1));
-    }
-
-    SortedPointMatrix spm(points0);
-    std::vector<double> sorted0 = {2.0, 3.0, 5.0};
-    std::vector<double> sorted1 = {2.0, 4.0, 9.0};
-    std::vector<double> sorted2 = {1.0, 3.0, 8.0};
-
-    auto g = [](std::vector<PtrToPoint> pts, int dim) {
-        std::vector<double> a;
-        for (int i = 0; i < pts.size(); i++) { a.push_back(pts[i]->asVector()[dim]); }
-        return a;
-    };
-
-    CHECK_EQ(spm.numUniquePoints(), 3);
-    CHECK_EQ(spm.getSortedPointsAtCurrentDim()[1]->count(), 2);
-    CHECK_EQ(g(spm.getSortedPointsAtCurrentDim(), 0), sorted0);
-
-    spm.moveToNextDimension();
-    CHECK_EQ(g(spm.getSortedPointsAtCurrentDim(), 1), sorted1);
-
-    spm.moveToNextDimension();
-    CHECK_EQ(g(spm.getSortedPointsAtCurrentDim(), 2), sorted2);
-
-    spm = SortedPointMatrix(points1);
-
-    auto pairOfSPMs = spm.splitOnMid();
-    auto leftSPM = pairOfSPMs.first;
-    auto rightSPM = pairOfSPMs.second;
-
-    CHECK_EQ(leftSPM.numUniquePoints(), 2);
-    CHECK_EQ(rightSPM.numUniquePoints(), 1);
-
-    std::vector<double> leftSorted0 = {2.0, 3.0};
-    std::vector<double> leftSorted1 = {4.0, 9.0};
-    std::vector<double> leftSorted2 = {1.0, 3.0};
-
-    CHECK_EQ(leftSPM.numUniquePoints(), 2);
-    CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->count(), 2);
-    CHECK_EQ(g(leftSPM.getSortedPointsAtCurrentDim(), 0), leftSorted0);
-
-    leftSPM.moveToNextDimension();
-    CHECK_EQ(g(leftSPM.getSortedPointsAtCurrentDim(), 1), leftSorted1);
-
-    auto leftLeftSPM = leftSPM.splitOnMid().first;
-    std::vector<double> leftSorted11 = {4.0};
-    std::vector<double> leftSorted21 = {1.0};
-    CHECK_EQ(leftLeftSPM.getMidPoint()->asVector()[1], 4);
-    CHECK_EQ(g(leftLeftSPM.getSortedPointsAtCurrentDim(), 1), leftSorted11);
-    leftLeftSPM.moveToNextDimension();
-    CHECK_EQ(g(leftLeftSPM.getSortedPointsAtCurrentDim(), 2), leftSorted21);
-
-    std::vector<double> rightSorted0 = {5.0};
-    std::vector<double> rightSorted1 = {2.0};
-    std::vector<double> rightSorted2 = {8.0};
-
-    CHECK_EQ(rightSPM.numUniquePoints(), 1);
-    CHECK_EQ(rightSPM.getSortedPointsAtCurrentDim()[0]->count(), 3);
-    CHECK_EQ(g(rightSPM.getSortedPointsAtCurrentDim(), 0), rightSorted0);
-    rightSPM.moveToNextDimension();
-    CHECK_EQ(g(rightSPM.getSortedPointsAtCurrentDim(), 1), rightSorted1);
-    rightSPM.moveToNextDimension();
-    CHECK_EQ(g(rightSPM.getSortedPointsAtCurrentDim(), 2), rightSorted2);
-
-
-    /*CHECK_EQ(spm.numUniquePoints(), sortedValues.size());
-    CHECK_EQ(sortedPoints.size(), sortedValues.size());
-
-    for (int i = 0; i < spm.numUniquePoints(); i++) {
-        CHECK_EQ(sortedPoints[i]->asVector(), f(sortedValues[i]));
-        CHECK_EQ(sortedPoints[i]->value(), sortedValues[i] + 1);
-        CHECK_EQ(sortedPoints[i]->count(), sortedCounts[i]);
-    }
-
-    CHECK_EQ(spm.getMidPoint()->asVector(), f(3.0));
-    auto pairOfSPMs = spm.splitOnMid();
-    auto leftSPM = pairOfSPMs.first;
-    auto rightSPM = pairOfSPMs.second;
-    CHECK_EQ(leftSPM.numUniquePoints(), 3);
-    CHECK_EQ(rightSPM.numUniquePoints(), 2);
-    CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[0]->asVector()[0], 1.0);
-    CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[1]->asVector()[0], 2.0);
-    CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[2]->asVector()[0], 3.0);
-    CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[1]->count(), 4);
-    CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[1]->value(), 3.0);*/
-}
