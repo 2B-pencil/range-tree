@@ -23,10 +23,10 @@
  */
 
 #include <vector>
-#include "gtest/gtest.h"
 #include "RangeTree.h"
 #include <random>
 #include <cmath>
+#include <doctest.h>
 
 namespace RT = RangeTree;
 
@@ -87,7 +87,7 @@ void printPoints(std::vector<RT::Point<T,S>> points) {
     }
 }
 
-TEST(range_tree_count_test, returns_correct_for_one_dim)
+TEST_CASE("range_tree_count_test, returns_correct_for_one_dim")
 {
     std::vector<double> values = {1.0,1.0,2.0,2.0,3.0,3.0,3.0,4.0,4.0,5.0};
     std::vector<RT::Point<double,int>> points = {};
@@ -101,16 +101,16 @@ TEST(range_tree_count_test, returns_correct_for_one_dim)
     RT::RangeTree<double,int> rtree(points);
 
     auto g = [](bool a) { std::vector<bool> b = {a}; return b;};
-    EXPECT_EQ(rtree.countInRange(f(-12.0), f(30.0), g(true), g(true)), 10);
-    EXPECT_EQ(rtree.countInRange(f(2.0), f(4.0), g(true), g(true)), 7);
-    EXPECT_EQ(rtree.countInRange(f(2.0), f(4.0), g(false), g(true)), 5);
-    EXPECT_EQ(rtree.countInRange(f(2.0), f(4.0), g(true), g(false)), 5);
-    EXPECT_EQ(rtree.countInRange(f(2.0), f(4.0), g(false), g(false)), 3);
-    EXPECT_EQ(rtree.countInRange(f(3.0), f(3.0), g(false), g(false)), 0);
-    EXPECT_EQ(rtree.countInRange(f(3.0), f(4.0), g(false), g(false)), 0);
+    CHECK_EQ(rtree.countInRange(f(-12.0), f(30.0), g(true), g(true)), 10);
+    CHECK_EQ(rtree.countInRange(f(2.0), f(4.0), g(true), g(true)), 7);
+    CHECK_EQ(rtree.countInRange(f(2.0), f(4.0), g(false), g(true)), 5);
+    CHECK_EQ(rtree.countInRange(f(2.0), f(4.0), g(true), g(false)), 5);
+    CHECK_EQ(rtree.countInRange(f(2.0), f(4.0), g(false), g(false)), 3);
+    CHECK_EQ(rtree.countInRange(f(3.0), f(3.0), g(false), g(false)), 0);
+    CHECK_EQ(rtree.countInRange(f(3.0), f(4.0), g(false), g(false)), 0);
 }
 
-TEST(range_tree_return_points_test, returns_correct_for_one_dim)
+TEST_CASE("range_tree_return_points_test, returns_correct_for_one_dim")
 {
     std::vector<double> values = {3.0, 1.0, 2.0, 11.0, 5.0, 11.0};
     std::vector<int> counts = {1, 3, 4, 1, 2, 1};
@@ -133,24 +133,24 @@ TEST(range_tree_return_points_test, returns_correct_for_one_dim)
         a.increaseCountBy(sortedCounts[i] - 1);
         sortedPoints.push_back(a);
     }
-    EXPECT_EQ(sortedPoints, sortAndMerge(points));
+    CHECK_EQ(sortedPoints, sortAndMerge(points));
 
     RT::RangeTree<double,int> rtree(points);
 
     auto g = [](bool a) { std::vector<bool> b = {a}; return b;};
-    EXPECT_EQ(sortPoints(rtree.pointsInRange(f(-12.0), f(30.0), g(true), g(true))),
+    CHECK_EQ(sortPoints(rtree.pointsInRange(f(-12.0), f(30.0), g(true), g(true))),
               sortedPoints);
-    EXPECT_EQ(sortPoints(rtree.pointsInRange(f(2.0), f(3.0), g(true), g(true))),
+    CHECK_EQ(sortPoints(rtree.pointsInRange(f(2.0), f(3.0), g(true), g(true))),
               slice(sortedPoints, 1, 2));
-    EXPECT_EQ(sortPoints(rtree.pointsInRange(f(2.0), f(3.0), g(false), g(true))),
+    CHECK_EQ(sortPoints(rtree.pointsInRange(f(2.0), f(3.0), g(false), g(true))),
               slice(sortedPoints, 2, 2));
-    EXPECT_EQ(sortPoints(rtree.pointsInRange(f(2.0), f(3.0), g(true), g(false))),
+    CHECK_EQ(sortPoints(rtree.pointsInRange(f(2.0), f(3.0), g(true), g(false))),
               slice(sortedPoints, 1, 1));
-    EXPECT_EQ(sortPoints(rtree.pointsInRange(f(2.0), f(3.0), g(false), g(false))),
+    CHECK_EQ(sortPoints(rtree.pointsInRange(f(2.0), f(3.0), g(false), g(false))),
               slice(sortedPoints, 1, 0));
 }
 
-TEST(range_tree_count_test, returns_correct_for_two_dim)
+TEST_CASE("range_tree_count_test, returns_correct_for_two_dim")
 {
     std::vector<double> v1 = {3.0, 3.0, 3.0, 1.0, 1.0, 1.0, 2.0, 2.0, 2.0, 1.0, 3.1};
     std::vector<double> v2 = {1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 2.0, 3.0, 1.0, 3.2};
@@ -166,74 +166,74 @@ TEST(range_tree_count_test, returns_correct_for_two_dim)
 
     auto g = [](bool a, bool b) { std::vector<bool> c = {a, b}; return c;};
     // Selecting 2-dim regions with boundary
-    EXPECT_EQ(rtree.countInRange(f(0.0, 0.0), f(4.0, 4.0),
+    CHECK_EQ(rtree.countInRange(f(0.0, 0.0), f(4.0, 4.0),
                                  g(true, true), g(true, true)), 11);
-    EXPECT_EQ(rtree.countInRange(f(0.0, 0.0), f(1.0, 1.0),
+    CHECK_EQ(rtree.countInRange(f(0.0, 0.0), f(1.0, 1.0),
                                  g(true, true), g(true, true)), 2);
-    EXPECT_EQ(rtree.countInRange(f(0.0, 0.0), f(1.0, 3.0),
+    CHECK_EQ(rtree.countInRange(f(0.0, 0.0), f(1.0, 3.0),
                                  g(true, true), g(true, true)), 4);
-    EXPECT_EQ(rtree.countInRange(f(1.9, 1.9), f(2.1, 2.1),
+    CHECK_EQ(rtree.countInRange(f(1.9, 1.9), f(2.1, 2.1),
                                  g(true, true), g(true, true)), 1);
-    EXPECT_EQ(rtree.countInRange(f(-1000.0, -1000.0), f(1000.0, 0.9999999),
+    CHECK_EQ(rtree.countInRange(f(-1000.0, -1000.0), f(1000.0, 0.9999999),
                                  g(true, true), g(true, true)), 0);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
                                  g(true, true), g(true, true)), 10);
 
     // Selecting 2-dim regions without (some) boundaries
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
                                  g(false, true), g(true, true)), 6);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
                                  g(true, false), g(true, true)), 6);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
                                  g(true, true), g(false, true)), 7);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
                                  g(true, true), g(true, false)), 7);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
                                  g(false, false), g(true, true)), 4);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
                                  g(true, true), g(false, false)), 5);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
                                  g(true, false), g(true, false)), 3);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
                                  g(false, true), g(false, true)), 3);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(3.0, 3.0),
                                  g(false, false), g(false, false)), 1);
 
     // Selecting 0/1-dim regions with boundary
-    EXPECT_EQ(rtree.countInRange(f(1.0, 0.0), f(1.0, 2.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 0.0), f(1.0, 2.0),
                                  g(true, true), g(true, true)), 3);
-    EXPECT_EQ(rtree.countInRange(f(0.0, 2.0), f(3.0, 2.0),
+    CHECK_EQ(rtree.countInRange(f(0.0, 2.0), f(3.0, 2.0),
                                  g(true, true), g(true, true)), 3);
-    EXPECT_EQ(rtree.countInRange(f(0.0, 2.0), f(3.0, 2.0),
+    CHECK_EQ(rtree.countInRange(f(0.0, 2.0), f(3.0, 2.0),
                                  g(true, true), g(true, true)), 3);
-    EXPECT_EQ(rtree.countInRange(f(1.3, 3.0), f(2.3, 3.0),
+    CHECK_EQ(rtree.countInRange(f(1.3, 3.0), f(2.3, 3.0),
                                  g(true, true), g(true, true)), 1);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 1.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 1.0),
                                  g(true, true), g(true, true)), 2);
-    EXPECT_EQ(rtree.countInRange(f(0.0, 0.0), f(0.0, 1.0),
+    CHECK_EQ(rtree.countInRange(f(0.0, 0.0), f(0.0, 1.0),
                                  g(true, true), g(true, true)), 0);
 
     // Selecting 0/1-dim regions without (some) boundaries
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 2.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 2.0),
                                  g(false, true), g(true, true)), 0);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 2.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 2.0),
                                  g(true, false), g(true, true)), 1);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 2.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 2.0),
                                  g(true, true), g(false, true)), 0);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 2.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 2.0),
                                  g(true, true), g(true, false)), 2);
 
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 1.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 1.0),
                                  g(false, true), g(true, true)), 0);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 1.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 1.0),
                                  g(true, false), g(true, true)), 0);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 1.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 1.0),
                                  g(true, true), g(false, true)), 0);
-    EXPECT_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 1.0),
+    CHECK_EQ(rtree.countInRange(f(1.0, 1.0), f(1.0, 1.0),
                                  g(true, true), g(true, false)), 0);
 }
 
-TEST(range_tree_return_points_test, returns_correct_for_three_dim_cube)
+TEST_CASE("range_tree_return_points_test, returns_correct_for_three_dim_cube")
 {
 std::vector<RT::Point<double,int>> points = {};
     auto f = [](double a, double b, double c) { std::vector<double> d = {a, b, c}; return d;};
@@ -279,17 +279,17 @@ std::vector<RT::Point<double,int>> points = {};
             auto withLower = boolVectors[i];
             auto withUpper = boolVectors[j];
 
-            EXPECT_EQ(sortAndMerge(nrc.pointsInRange(lower2d, upper2d, withLower, withUpper)),
+            CHECK_EQ(sortAndMerge(nrc.pointsInRange(lower2d, upper2d, withLower, withUpper)),
                       sortPoints(rtree.pointsInRange(lower2d, upper2d, withLower, withUpper)));
-            EXPECT_EQ(sortAndMerge(nrc.pointsInRange(lower1d, upper1d, withLower, withUpper)),
+            CHECK_EQ(sortAndMerge(nrc.pointsInRange(lower1d, upper1d, withLower, withUpper)),
                       sortPoints(rtree.pointsInRange(lower1d, upper1d, withLower, withUpper)));
-            EXPECT_EQ(sortAndMerge(nrc.pointsInRange(lower0d, upper0d, withLower, withUpper)),
+            CHECK_EQ(sortAndMerge(nrc.pointsInRange(lower0d, upper0d, withLower, withUpper)),
                       sortPoints(rtree.pointsInRange(lower0d, upper0d, withLower, withUpper)));
         }
     }
 }
 
-TEST(range_tree_count_test, returns_correct_for_three_dim)
+TEST_CASE("range_tree_count_test, returns_correct_for_three_dim")
 {
     auto f = [](double a, double b, double c) { std::vector<double> d = {a, b, c}; return d;};
     std::vector<RT::Point<double,int>> points = {};
@@ -339,19 +339,19 @@ TEST(range_tree_count_test, returns_correct_for_three_dim)
             auto withLower = boolVectors[i];
             auto withUpper = boolVectors[j];
 
-            EXPECT_EQ(nrc.countInRange(lower3d, upper3d, withLower, withUpper),
+            CHECK_EQ(nrc.countInRange(lower3d, upper3d, withLower, withUpper),
                       rtree.countInRange(lower3d, upper3d, withLower, withUpper));
-            EXPECT_EQ(nrc.countInRange(lower2d, upper2d, withLower, withUpper),
+            CHECK_EQ(nrc.countInRange(lower2d, upper2d, withLower, withUpper),
                       rtree.countInRange(lower2d, upper2d, withLower, withUpper));
-            EXPECT_EQ(nrc.countInRange(lower1d, upper1d, withLower, withUpper),
+            CHECK_EQ(nrc.countInRange(lower1d, upper1d, withLower, withUpper),
                       rtree.countInRange(lower1d, upper1d, withLower, withUpper));
-            EXPECT_EQ(nrc.countInRange(lower0d, upper0d, withLower, withUpper),
+            CHECK_EQ(nrc.countInRange(lower0d, upper0d, withLower, withUpper),
                       rtree.countInRange(lower0d, upper0d, withLower, withUpper));
         }
     }
 }
 
-TEST(range_tree_return_points_test, returns_correct_for_three_dim)
+TEST_CASE("range_tree_return_points_test, returns_correct_for_three_dim")
 {
     auto f = [](double a, double b, double c) { std::vector<double> d = {a, b, c}; return d;};
     std::vector<RT::Point<double,int>> points = {};
@@ -401,19 +401,19 @@ TEST(range_tree_return_points_test, returns_correct_for_three_dim)
             auto withLower = boolVectors[i];
             auto withUpper = boolVectors[j];
 
-            EXPECT_EQ(sortAndMerge(nrc.pointsInRange(lower3d, upper3d, withLower, withUpper)),
+            CHECK_EQ(sortAndMerge(nrc.pointsInRange(lower3d, upper3d, withLower, withUpper)),
                       sortPoints(rtree.pointsInRange(lower3d, upper3d, withLower, withUpper)));
-            EXPECT_EQ(sortAndMerge(nrc.pointsInRange(lower2d, upper2d, withLower, withUpper)),
+            CHECK_EQ(sortAndMerge(nrc.pointsInRange(lower2d, upper2d, withLower, withUpper)),
                       sortPoints(rtree.pointsInRange(lower2d, upper2d, withLower, withUpper)));
-            EXPECT_EQ(sortAndMerge(nrc.pointsInRange(lower1d, upper1d, withLower, withUpper)),
+            CHECK_EQ(sortAndMerge(nrc.pointsInRange(lower1d, upper1d, withLower, withUpper)),
                       sortPoints(rtree.pointsInRange(lower1d, upper1d, withLower, withUpper)));
-            EXPECT_EQ(sortAndMerge(nrc.pointsInRange(lower0d, upper0d, withLower, withUpper)),
+            CHECK_EQ(sortAndMerge(nrc.pointsInRange(lower0d, upper0d, withLower, withUpper)),
                       sortPoints(rtree.pointsInRange(lower0d, upper0d, withLower, withUpper)));
         }
     }
 }
 
-TEST(range_tree_return_points_test, returns_correct_for_high_dim)
+TEST_CASE("range_tree_return_points_test, returns_correct_for_high_dim")
 {
     std::random_device rd;
     std::mt19937 gen(rd());
@@ -459,16 +459,16 @@ TEST(range_tree_return_points_test, returns_correct_for_high_dim)
         std::vector<double> normLower = normPoints[ind0].asVector();
         std::vector<double> normUpper = add(normLower, abs(normPoints[ind1].asVector()));
 
-        EXPECT_EQ(normRt.countInRange(normLower, normUpper, withLower, withUpper),
+        CHECK_EQ(normRt.countInRange(normLower, normUpper, withLower, withUpper),
                   normNrc.countInRange(normLower, normUpper, withLower, withUpper));
-        EXPECT_EQ(sortPoints(normRt.pointsInRange(normLower, normUpper, withLower, withUpper)),
+        CHECK_EQ(sortPoints(normRt.pointsInRange(normLower, normUpper, withLower, withUpper)),
                   sortAndMerge(normNrc.pointsInRange(normLower, normUpper, withLower, withUpper)));
 
         std::vector<int> binomLower = binomPoints[ind0].asVector();
         std::vector<int> binomUpper = add(binomLower, abs(binomPoints[ind1].asVector()));
-        EXPECT_EQ(binomRt.countInRange(binomLower, binomUpper, withLower, withUpper),
+        CHECK_EQ(binomRt.countInRange(binomLower, binomUpper, withLower, withUpper),
                   binomNrc.countInRange(binomLower, binomUpper, withLower, withUpper));
-        EXPECT_EQ(sortPoints(binomRt.pointsInRange(binomLower, binomUpper, withLower, withUpper)),
+        CHECK_EQ(sortPoints(binomRt.pointsInRange(binomLower, binomUpper, withLower, withUpper)),
                   sortAndMerge(binomNrc.pointsInRange(binomLower, binomUpper, withLower, withUpper)));
     }
 }

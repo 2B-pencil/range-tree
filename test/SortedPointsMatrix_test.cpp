@@ -23,8 +23,8 @@
  */
 
 #include <vector>
-#include "gtest/gtest.h"
 #include "RangeTree.h"
+#include <doctest.h>
 
 namespace RT = RangeTree;
 
@@ -32,7 +32,7 @@ typedef RT::Point<double, int> Point;
 typedef RT::Point<double, int>* PtrToPoint;
 typedef RT::SortedPointMatrix<double, int> SortedPointMatrix;
 
-TEST(sorted_points_matrix_test, works_with_1_dim)
+TEST_CASE("works_with_1_dim")
 {
     std::vector<double> values = {3.0, 1.0, 2.0, 11.0, 5.0, 11.0};
     std::vector<int> counts = {1, 3, 4, 1, 2, 1};
@@ -50,29 +50,29 @@ TEST(sorted_points_matrix_test, works_with_1_dim)
     SortedPointMatrix spm(points);
     auto sortedPoints = spm.getSortedPointsAtCurrentDim();
 
-    EXPECT_EQ(spm.numUniquePoints(), sortedValues.size());
-    EXPECT_EQ(sortedPoints.size(), sortedValues.size());
+    CHECK_EQ(spm.numUniquePoints(), sortedValues.size());
+    CHECK_EQ(sortedPoints.size(), sortedValues.size());
 
     for (int i = 0; i < spm.numUniquePoints(); i++) {
-        EXPECT_EQ(sortedPoints[i]->asVector(), f(sortedValues[i]));
-        EXPECT_EQ(sortedPoints[i]->value(), sortedValues[i] + 1);
-        EXPECT_EQ(sortedPoints[i]->count(), sortedCounts[i]);
+        CHECK_EQ(sortedPoints[i]->asVector(), f(sortedValues[i]));
+        CHECK_EQ(sortedPoints[i]->value(), sortedValues[i] + 1);
+        CHECK_EQ(sortedPoints[i]->count(), sortedCounts[i]);
     }
 
-    EXPECT_EQ(spm.getMidPoint()->asVector(), f(3.0));
+    CHECK_EQ(spm.getMidPoint()->asVector(), f(3.0));
     auto pairOfSPMs = spm.splitOnMid();
     auto leftSPM = pairOfSPMs.first;
     auto rightSPM = pairOfSPMs.second;
-    EXPECT_EQ(leftSPM.numUniquePoints(), 3);
-    EXPECT_EQ(rightSPM.numUniquePoints(), 2);
-    EXPECT_EQ(leftSPM.getSortedPointsAtCurrentDim()[0]->asVector()[0], 1.0);
-    EXPECT_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->asVector()[0], 2.0);
-    EXPECT_EQ(leftSPM.getSortedPointsAtCurrentDim()[2]->asVector()[0], 3.0);
-    EXPECT_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->count(), 4);
-    EXPECT_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->value(), 3.0);
+    CHECK_EQ(leftSPM.numUniquePoints(), 3);
+    CHECK_EQ(rightSPM.numUniquePoints(), 2);
+    CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[0]->asVector()[0], 1.0);
+    CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->asVector()[0], 2.0);
+    CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[2]->asVector()[0], 3.0);
+    CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->count(), 4);
+    CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->value(), 3.0);
 }
 
-TEST(sorted_points_matrix_test, works_with_3_dim)
+TEST_CASE("works_with_3_dim")
 {
     std::vector<double> pt0 = {3.0, 4.0, 1.0};
     std::vector<double> pt1 = {5.0, 2.0, 8.0};
@@ -106,15 +106,15 @@ TEST(sorted_points_matrix_test, works_with_3_dim)
         return a;
     };
 
-    EXPECT_EQ(spm.numUniquePoints(), 3);
-    EXPECT_EQ(spm.getSortedPointsAtCurrentDim()[1]->count(), 2);
-    EXPECT_EQ(g(spm.getSortedPointsAtCurrentDim(), 0), sorted0);
+    CHECK_EQ(spm.numUniquePoints(), 3);
+    CHECK_EQ(spm.getSortedPointsAtCurrentDim()[1]->count(), 2);
+    CHECK_EQ(g(spm.getSortedPointsAtCurrentDim(), 0), sorted0);
 
     spm.moveToNextDimension();
-    EXPECT_EQ(g(spm.getSortedPointsAtCurrentDim(), 1), sorted1);
+    CHECK_EQ(g(spm.getSortedPointsAtCurrentDim(), 1), sorted1);
 
     spm.moveToNextDimension();
-    EXPECT_EQ(g(spm.getSortedPointsAtCurrentDim(), 2), sorted2);
+    CHECK_EQ(g(spm.getSortedPointsAtCurrentDim(), 2), sorted2);
 
     spm = SortedPointMatrix(points1);
 
@@ -122,59 +122,59 @@ TEST(sorted_points_matrix_test, works_with_3_dim)
     auto leftSPM = pairOfSPMs.first;
     auto rightSPM = pairOfSPMs.second;
 
-    EXPECT_EQ(leftSPM.numUniquePoints(), 2);
-    EXPECT_EQ(rightSPM.numUniquePoints(), 1);
+    CHECK_EQ(leftSPM.numUniquePoints(), 2);
+    CHECK_EQ(rightSPM.numUniquePoints(), 1);
 
     std::vector<double> leftSorted0 = {2.0, 3.0};
     std::vector<double> leftSorted1 = {4.0, 9.0};
     std::vector<double> leftSorted2 = {1.0, 3.0};
 
-    EXPECT_EQ(leftSPM.numUniquePoints(), 2);
-    EXPECT_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->count(), 2);
-    EXPECT_EQ(g(leftSPM.getSortedPointsAtCurrentDim(), 0), leftSorted0);
+    CHECK_EQ(leftSPM.numUniquePoints(), 2);
+    CHECK_EQ(leftSPM.getSortedPointsAtCurrentDim()[1]->count(), 2);
+    CHECK_EQ(g(leftSPM.getSortedPointsAtCurrentDim(), 0), leftSorted0);
 
     leftSPM.moveToNextDimension();
-    EXPECT_EQ(g(leftSPM.getSortedPointsAtCurrentDim(), 1), leftSorted1);
+    CHECK_EQ(g(leftSPM.getSortedPointsAtCurrentDim(), 1), leftSorted1);
 
     auto leftLeftSPM = leftSPM.splitOnMid().first;
     std::vector<double> leftSorted11 = {4.0};
     std::vector<double> leftSorted21 = {1.0};
-    EXPECT_EQ(leftLeftSPM.getMidPoint()->asVector()[1], 4);
-    EXPECT_EQ(g(leftLeftSPM.getSortedPointsAtCurrentDim(), 1), leftSorted11);
+    CHECK_EQ(leftLeftSPM.getMidPoint()->asVector()[1], 4);
+    CHECK_EQ(g(leftLeftSPM.getSortedPointsAtCurrentDim(), 1), leftSorted11);
     leftLeftSPM.moveToNextDimension();
-    EXPECT_EQ(g(leftLeftSPM.getSortedPointsAtCurrentDim(), 2), leftSorted21);
+    CHECK_EQ(g(leftLeftSPM.getSortedPointsAtCurrentDim(), 2), leftSorted21);
 
     std::vector<double> rightSorted0 = {5.0};
     std::vector<double> rightSorted1 = {2.0};
     std::vector<double> rightSorted2 = {8.0};
 
-    EXPECT_EQ(rightSPM.numUniquePoints(), 1);
-    EXPECT_EQ(rightSPM.getSortedPointsAtCurrentDim()[0]->count(), 3);
-    EXPECT_EQ(g(rightSPM.getSortedPointsAtCurrentDim(), 0), rightSorted0);
+    CHECK_EQ(rightSPM.numUniquePoints(), 1);
+    CHECK_EQ(rightSPM.getSortedPointsAtCurrentDim()[0]->count(), 3);
+    CHECK_EQ(g(rightSPM.getSortedPointsAtCurrentDim(), 0), rightSorted0);
     rightSPM.moveToNextDimension();
-    EXPECT_EQ(g(rightSPM.getSortedPointsAtCurrentDim(), 1), rightSorted1);
+    CHECK_EQ(g(rightSPM.getSortedPointsAtCurrentDim(), 1), rightSorted1);
     rightSPM.moveToNextDimension();
-    EXPECT_EQ(g(rightSPM.getSortedPointsAtCurrentDim(), 2), rightSorted2);
+    CHECK_EQ(g(rightSPM.getSortedPointsAtCurrentDim(), 2), rightSorted2);
 
 
-    /*EXPECT_EQ(spm.numUniquePoints(), sortedValues.size());
-    EXPECT_EQ(sortedPoints.size(), sortedValues.size());
+    /*CHECK_EQ(spm.numUniquePoints(), sortedValues.size());
+    CHECK_EQ(sortedPoints.size(), sortedValues.size());
 
     for (int i = 0; i < spm.numUniquePoints(); i++) {
-        EXPECT_EQ(sortedPoints[i]->asVector(), f(sortedValues[i]));
-        EXPECT_EQ(sortedPoints[i]->value(), sortedValues[i] + 1);
-        EXPECT_EQ(sortedPoints[i]->count(), sortedCounts[i]);
+        CHECK_EQ(sortedPoints[i]->asVector(), f(sortedValues[i]));
+        CHECK_EQ(sortedPoints[i]->value(), sortedValues[i] + 1);
+        CHECK_EQ(sortedPoints[i]->count(), sortedCounts[i]);
     }
 
-    EXPECT_EQ(spm.getMidPoint()->asVector(), f(3.0));
+    CHECK_EQ(spm.getMidPoint()->asVector(), f(3.0));
     auto pairOfSPMs = spm.splitOnMid();
     auto leftSPM = pairOfSPMs.first;
     auto rightSPM = pairOfSPMs.second;
-    EXPECT_EQ(leftSPM.numUniquePoints(), 3);
-    EXPECT_EQ(rightSPM.numUniquePoints(), 2);
-    EXPECT_EQ(leftSPM.getSortedPointsAtDimension(0)[0]->asVector()[0], 1.0);
-    EXPECT_EQ(leftSPM.getSortedPointsAtDimension(0)[1]->asVector()[0], 2.0);
-    EXPECT_EQ(leftSPM.getSortedPointsAtDimension(0)[2]->asVector()[0], 3.0);
-    EXPECT_EQ(leftSPM.getSortedPointsAtDimension(0)[1]->count(), 4);
-    EXPECT_EQ(leftSPM.getSortedPointsAtDimension(0)[1]->value(), 3.0);*/
+    CHECK_EQ(leftSPM.numUniquePoints(), 3);
+    CHECK_EQ(rightSPM.numUniquePoints(), 2);
+    CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[0]->asVector()[0], 1.0);
+    CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[1]->asVector()[0], 2.0);
+    CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[2]->asVector()[0], 3.0);
+    CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[1]->count(), 4);
+    CHECK_EQ(leftSPM.getSortedPointsAtDimension(0)[1]->value(), 3.0);*/
 }
