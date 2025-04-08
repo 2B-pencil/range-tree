@@ -23,7 +23,7 @@
  */
 
 /**
-* Implements the RangeTree datastructure.
+* Implements the RangeTree data structure.
 *
 * See the documentation of the class RangeTree for more details regarding the purpose
 * of RangeTree's.
@@ -305,7 +305,7 @@ namespace RangeTree {
             for (int i = 0; i < points.size(); i++) { order[i] = i; }
             PointOrdering<T,S> pointOrdering(onDim);
             std::sort(order.begin(), order.end(),
-                      [pointOrdering, points](int i, int j) {
+                      [pointOrdering, points](const int& i, const int& j) {
                           return pointOrdering.less(*(points[i]), *(points[j]));
                       });
             return order;
@@ -329,14 +329,19 @@ namespace RangeTree {
 
         SortedPointMatrix(const std::vector<Point<T,S>* >& pointsSortedByCurrentDim,
                           const std::deque<std::vector<int> >& redirectionTable,
-                          int currentDim, int dim) : pointsSortedByCurrentDim(pointsSortedByCurrentDim), redirectionTable(redirectionTable),
-                                        currentDim(currentDim), dim(dim) {}
+                          int currentDim, int dim) 
+            : pointsSortedByCurrentDim(pointsSortedByCurrentDim)
+            , redirectionTable(redirectionTable)
+            , currentDim(currentDim)
+            , dim(dim) {}
 
     public:
         /**
         * Constructs a sorted point matrix
         */
-        SortedPointMatrix(std::vector<Point<T,S>* >& points): currentDim(0) {
+        SortedPointMatrix(std::vector<Point<T,S>* >& points)
+            : currentDim(0) 
+        {
             if (points.size() == 0) {
                 throw std::range_error("Cannot construct a SortedPointMatrix with 0 points.");
             } else {

@@ -1,30 +1,29 @@
-# To cmake project, from project root do:
-# 1. cd build
-# 2. cmake ..
-# 3. cmake --build .
-# 4. ctest -VV
-
-# Basic project information
-cmake_minimum_required(VERSION 3.6)
-set(PROJECT_NAME_STR RangeTree)
-project(${PROJECT_NAME_STR} C CXX)
-set (RangeTree_VERSION_MAJOR 0)
-set (RangeTree_VERSION_MINOR 1)
-
-# Flags
+cmake_minimum_required(VERSION 3.50)
+project(RangeTree LANGUAGES CXX)
 set(CMAKE_CXX_STANDARD 11)
 
-#-------------------
-# set common include folder for module
-#-------------------
-set(COMMON_INCLUDES ./)
+option(USE_MULTI_THREADED_DLL "Use Multi-threaded DLL" ON)
+option(RANGETREE_BUILD_TESTS "Build the tests" OFF)
 
+set(CMAKE_CXX_STANDARD 11)
 
-#-------------------
-# Test
-#-------------------
-set(PROJECT_TEST_NAME ${PROJECT_NAME_STR}Test)
-include_directories(${COMMON_INCLUDES})
+# Enable output of compile commands during generation.
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
-file(GLOB TEST_SRC_FILES ${PROJECT_SOURCE_DIR}/Test/*.cpp)
-add_executable(${PROJECT_TEST_NAME} ${TEST_SRC_FILES})
+# Set MSVC_RUNTIME_LIBRARY etc..
+IF(MSVC)
+    add_compile_options(/MP)
+    if(USE_MULTI_THREADED_DLL)
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>DLL")
+    else()
+        set(CMAKE_MSVC_RUNTIME_LIBRARY "MultiThreaded$<$<CONFIG:Debug>:Debug>")
+    endif()
+endif()
+
+set(CMAKE_DEBUG_POSTFIX "d") 
+
+if(RANGETREE_BUILD_TESTS)
+  add_subdirectory(tests)
+endif()
+
+#install(FILES ${HEADERS} DESTINATION include)
