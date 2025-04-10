@@ -44,6 +44,7 @@
 #include <deque>
 #include <cmath>
 #include <algorithm>
+#include <memory>
 
 namespace RangeTree {
 
@@ -56,12 +57,12 @@ namespace RangeTree {
     * each point. Points can also have a multiplicity/count, this corresponds
     * to having several duplicates of the same point.
     */
-    template<typename T, class S>
+    template<typename Scalar = double, typename Value = size_t>
     class Point {
-        static_assert(std::is_arithmetic<T>::value, "Type T must be numeric");
+        static_assert(std::is_arithmetic<Scalar>::value, "Type Scalar must be numeric");
     private:
-        std::vector<T> vec;
-        S val;
+        std::vector<Scalar> vec;
+        Value val;
         int multiplicity;
 
     public:
@@ -82,7 +83,7 @@ namespace RangeTree {
         * @param vec the position in euclidean space.
         * @param val the value associated with the point.
         */
-        Point(const std::vector<T>& vec, const S& val): val(val), vec(vec), multiplicity(1) {}
+        Point(const std::vector<Scalar>& vec, const Value& val): val(val), vec(vec), multiplicity(1) {}
 
         /**
         * Constructs a point.
@@ -92,7 +93,7 @@ namespace RangeTree {
         * @param vec the position in euclidean space.
         * @param val the value associated with the point.
         */
-        Point(const Point<T,S>& p): val(p.val), vec(p.vec), multiplicity(p.count()) {}
+        Point(const Point<Scalar,Value>& p): val(p.val), vec(p.vec), multiplicity(p.count()) {}
 
 
         /**
@@ -100,9 +101,7 @@ namespace RangeTree {
         *
         * @return the euclidean position of the point as a std::vector.
         */
-        const std::vector<T>& asVector() const {
-            return vec;
-        }
+        const std::vector<Scalar>& asVector() const { return vec; }
 
         /**
         * The point's ambient dimension.
@@ -110,25 +109,21 @@ namespace RangeTree {
         * @return the dimension of the space in which the point lives. I.e. a point of the
         *         form (1,2,3) lives in dimension 3.
         */
-        unsigned long dim() const {
-            return  static_cast<unsigned long>(vec.size());
-        }
+        inline int dim() const { return static_cast<int>(vec.size()); }
 
         /**
         * The point's count/multiplicity.
         *
         * @return returns the count/multiplicity.
         */
-        int count() const {
-            return multiplicity;
-        }
+        inline int count() const {  return multiplicity; }
 
         /**
         * Increase the point's count/multiplicity.
         *
         * @param n amount to increase by.
         */
-        void increaseCountBy(int n) {
+        inline void increaseCountBy(const int& n) {
             if (n < 0) {
                 throw std::logic_error("Can't increase by a negative amount");
             }
@@ -140,9 +135,7 @@ namespace RangeTree {
         *
         * @return the value stored in the point.
         */
-        S value() const {
-            return val;
-        }
+        inline Value value() const { return val; }
 
         /**
         * Index a point.
@@ -153,7 +146,7 @@ namespace RangeTree {
         * @param index the coordinate to index.
         * @return the coordinate value.
         */
-        T operator[](int index) const {
+        Scalar operator[](int index) const {
             if(index < 0 || index >= static_cast<int>(dim())) {
                 throw std::out_of_range("[] access index for point is out of range.");
             }
@@ -169,7 +162,7 @@ namespace RangeTree {
         * @param p some other point
         * @return true if \p equals the current point, otherwise false.
         */
-        bool operator==(const Point<T,S>& p) const {
+        bool operator==(const Point<Scalar,Value>& p) const {
             return vec == p.vec && multiplicity == p.multiplicity && val == p.val;
         }
 
@@ -181,7 +174,7 @@ namespace RangeTree {
         * @param p some other point.
         * @return false if \p equals the current point, otherwise true.
         */
-        bool operator!=(const Point<T,S>& p) const {
+        bool operator!=(const Point<Scalar,Value>& p) const {
             return !((*this) == p);
         }
 
@@ -209,7 +202,7 @@ namespace RangeTree {
     };
 
     /**
-    * A class that totally orders Point<T,S>'s in euclidean space.
+    * A class that totally orders Point<Scalar,Value>'s in euclidean space.
     *
     * A total order of Points is required in the RangeTree. This is an implementation
     * detail that can be ignored. Given a start index \compareStartIndex, this class
@@ -225,9 +218,9 @@ namespace RangeTree {
     *
     * again using the usual lexicographic order.
     */
-    template <typename T, class S>
+    template<typename Scalar = double, typename Value = size_t>
     class PointOrdering {
-        static_assert(std::is_arithmetic<T>::value, "Type T must be numeric");
+        static_assert(std::is_arithmetic<Scalar>::value, "Type Scalar must be numeric");
     private:
         int compareStartIndex;
 
@@ -238,29 +231,27 @@ namespace RangeTree {
             }
         }
 
-        static bool equals(const Point<T,S>& p1, const Point<T,S>& p2) {
+        static bool equals(const Point<Scalar,Value>& p1, const Point<Scalar,Value>& p2) {
             return p1.asVector() == p2.asVector();
         }
 
-        int getCompareStartIndex() const {
-            return compareStartIndex;
-        }
+        inline int getCompareStartIndex() const { return compareStartIndex; }
 
-        bool less(const Point<T,S>& p1, const Point<T,S>& p2) const {
+        bool less(const Point<Scalar,Value>& p1, const Point<Scalar,Value>& p2) const {
             if (p1.dim() != p2.dim()) {
                 throw std::logic_error("Points are incomparable (differing dims).");
             }
-            if (compareStartIndex >= static_cast<int>(p1.dim())) {
+            if (compareStartIndex >= p1.dim()) {
                 throw std::logic_error("Cannot compare points, compare start index >= point dimension.");
             }
-            for (int i = compareStartIndex; i < static_cast<int>(p1.dim()); i++) {
+            for (int i = compareStartIndex; i < p1.dim(); ++i) {
                 if (p1[i] < p2[i]) {
                     return true;
                 } else if (p1[i] > p2[i]) {
                     return false;
                 }
             }
-            for (int i = 0; i < compareStartIndex; i++) {
+            for (int i = 0; i < compareStartIndex; ++i) {
                 if (p1[i] < p2[i]) {
                     return true;
                 } else if (p1[i] > p2[i]) {
@@ -270,19 +261,19 @@ namespace RangeTree {
             return false;
         }
 
-        bool lessOrEq(const Point<T,S>& p1, const Point<T,S>& p2) const {
+        bool lessOrEq(const Point<Scalar,Value>& p1, const Point<Scalar,Value>& p2) const {
             return less(p1, p2) || equals(p1, p2);
         }
 
-        bool greater(const Point<T,S>& p1, const Point<T,S>& p2) const {
+        bool greater(const Point<Scalar,Value>& p1, const Point<Scalar,Value>& p2) const {
             return less(p2, p1);
         }
 
-        bool greaterOrEq(const Point<T,S>& p1, const Point<T,S>& p2) const {
+        bool greaterOrEq(const Point<Scalar,Value>& p1, const Point<Scalar,Value>& p2) const {
             return greater(p1, p2) || equals(p1,p2);
         }
 
-        bool operator()(const Point<T,S>& p1, const Point<T,S>& p2) const {
+        bool operator()(const Point<Scalar,Value>& p1, const Point<Scalar,Value>& p2) const {
             return this->less(p1, p2);
         }
     };
@@ -290,20 +281,21 @@ namespace RangeTree {
     /**
     * A matrix that keeps a collection of points sorted on each coordinate
     */
-    template<typename T, class S>
+    template<typename Scalar = double, typename Value = size_t>
     class SortedPointMatrix {
-        static_assert(std::is_arithmetic<T>::value, "Type T must be numeric");
+        static_assert(std::is_arithmetic<Scalar>::value, "Type Scalar must be numeric");
     private:
-        std::vector<Point<T,S>* > pointsSortedByCurrentDim;
+        std::vector<Point<Scalar,Value>* > pointsSortedByCurrentDim;
         std::deque<std::vector<int> > redirectionTable;
         int currentDim;
         int dim;
         static const int MAX_POINTS_BEFORE_SWITCH = 1000;
 
-        std::vector<int> sortOrder(const std::vector<Point<T,S>* >& points, int onDim) {
+        std::vector<int> sortOrder(const std::vector<Point<Scalar,Value>* >& points, int onDim) {
             std::vector<int> order(points.size());
-            for (int i = 0; i < points.size(); i++) { order[i] = i; }
-            PointOrdering<T,S> pointOrdering(onDim);
+            std::iota(order.begin(), order.end(), 0);
+
+            PointOrdering<Scalar,Value> pointOrdering(onDim);
             std::sort(order.begin(), order.end(),
                       [pointOrdering, points](const int& i, const int& j) {
                           return pointOrdering.less(*(points[i]), *(points[j]));
@@ -311,23 +303,24 @@ namespace RangeTree {
             return order;
         }
 
-        void sort(std::vector<Point<T,S>* >& points, int onDim) {
-            PointOrdering<T,S> pointOrdering(onDim);
+        void sort(std::vector<Point<Scalar, Value>* >& points, const int& onDim) {
+            PointOrdering<Scalar,Value> pointOrdering(onDim);
             std::sort(points.begin(), points.end(),
-                      [pointOrdering](Point<T,S>* pt0, Point<T,S>* pt1) {
+                [pointOrdering](Point<Scalar, Value>* pt0, Point<Scalar, Value>* pt1)
+            {
                           return pointOrdering.less(*(pt0), *(pt1));
                       });
         }
 
-        void rearrangeGivenOrder(std::vector<Point<T,S>* >& points,
+        void rearrangeGivenOrder(std::vector<Point<Scalar,Value>* >& points,
                                   const std::vector<int>& order) {
-            std::vector<Point<T,S>* > tmp = points;
-            for (int i = 0; i < points.size(); i++) {
+            std::vector<Point<Scalar,Value>* > tmp = points;
+            for (size_t i = 0, length = points.size(); i < length; ++i) {
                 points[i] = tmp[order[i]];
             }
         }
 
-        SortedPointMatrix(const std::vector<Point<T,S>* >& pointsSortedByCurrentDim,
+        SortedPointMatrix(const std::vector<Point<Scalar,Value>* >& pointsSortedByCurrentDim,
                           const std::deque<std::vector<int> >& redirectionTable,
                           int currentDim, int dim) 
             : pointsSortedByCurrentDim(pointsSortedByCurrentDim)
@@ -339,14 +332,15 @@ namespace RangeTree {
         /**
         * Constructs a sorted point matrix
         */
-        SortedPointMatrix(std::vector<Point<T,S>* >& points)
+        SortedPointMatrix(std::vector<Point<Scalar,Value>* >& points)
             : currentDim(0) 
         {
             if (points.size() == 0) {
                 throw std::range_error("Cannot construct a SortedPointMatrix with 0 points.");
-            } else {
+            }
+            else {
                 dim = points[0]->dim();
-                for (int i = 1; i < points.size(); i++) {
+                for (size_t i = 1, length = points.size(); i < length; ++i) {
                     if (points[i]->dim() != dim) {
                         throw std::logic_error("Input points to SortedPointMatrix must all"
                                                        " have the same dimension.");
@@ -354,30 +348,31 @@ namespace RangeTree {
                 }
 
                 int sortDimension = (points.size() > MAX_POINTS_BEFORE_SWITCH) ? dim - 1 : 0;
-                PointOrdering<T,S> pointOrdering(sortDimension);
+                PointOrdering<Scalar,Value> pointOrdering(sortDimension);
                 std::sort(points.begin(), points.end(),
-                          [pointOrdering](Point<T,S>* p1, Point<T,S>* p2) {
+                          [pointOrdering](Point<Scalar,Value>* p1, Point<Scalar,Value>* p2) {
                               return pointOrdering.less(*p1, *p2);
                           });
-
+                pointsSortedByCurrentDim.reserve(points.size());
                 pointsSortedByCurrentDim.emplace_back(points[0]);
                 int k = 0;
-                for (int i = 1; i < points.size(); i++) {
+                for (size_t i = 1, length = points.size(); i < length; ++i) {
                     if (pointOrdering.equals(*(pointsSortedByCurrentDim[k]), *points[i])) {
                         if (pointsSortedByCurrentDim[k]->value() != points[i]->value()) {
                             throw std::logic_error("Input points have same position but different values");
                         }
                         pointsSortedByCurrentDim[k]->increaseCountBy(points[i]->count());
-                    } else {
+                    }
+                    else {
                         pointsSortedByCurrentDim.emplace_back(points[i]);
-                        k++;
+                        ++k;
                     }
                 }
 
                 if (pointsSortedByCurrentDim.size() > MAX_POINTS_BEFORE_SWITCH) {
-                    for (int i = dim - 2; i >= currentDim; i--) {
+                    for (int i = dim - 2; i >= currentDim; --i) {
                         std::vector<int> order = sortOrder(pointsSortedByCurrentDim, i);
-                        redirectionTable.push_front(order);
+                        redirectionTable.emplace_front(order);
                         rearrangeGivenOrder(pointsSortedByCurrentDim, order);
                     }
                 }
@@ -390,8 +385,8 @@ namespace RangeTree {
             }
             currentDim++;
             if (pointsSortedByCurrentDim.size() > MAX_POINTS_BEFORE_SWITCH) {
-                std::vector<Point<T,S>* > tmp = pointsSortedByCurrentDim;
-                for (int i = 0; i < pointsSortedByCurrentDim.size(); i++) {
+                std::vector<Point<Scalar,Value>* > tmp = pointsSortedByCurrentDim;
+                for (size_t i = 0; i < pointsSortedByCurrentDim.size(); ++i) {
                     pointsSortedByCurrentDim[redirectionTable[0][i]] = tmp[i];
                 }
                 redirectionTable.pop_front();
@@ -400,20 +395,20 @@ namespace RangeTree {
             }
         }
 
-        Point<T,S>* getMidPoint() {
+        inline Point<Scalar,Value>* getMidPoint() {
             int mid = (numUniquePoints() - 1) / 2;
             return pointsSortedByCurrentDim[mid];
         }
 
-        int numUniquePoints() {
+        inline int numUniquePoints() {
             return  static_cast<int>(pointsSortedByCurrentDim.size());
         }
 
-        int getCurrentDim() {
+        inline int getCurrentDim() {
             return currentDim;
         }
 
-        std::vector<Point<T,S>* > getSortedPointsAtCurrentDim() {
+        inline std::vector<Point<Scalar,Value>* > getSortedPointsAtCurrentDim() {
             return pointsSortedByCurrentDim;
         }
 
@@ -427,11 +422,11 @@ namespace RangeTree {
             }
 
             int mid = (n - 1) / 2;
-            std::vector<Point<T, S> *> sortedPointsLeft(mid + 1), sortedPointsRight(n - mid - 1);
-            for (int i = 0; i < mid + 1; i++) {
+            std::vector<Point<Scalar, Value> *> sortedPointsLeft(mid + 1), sortedPointsRight(n - mid - 1);
+            for (int i = 0; i < mid + 1; ++i) {
                 sortedPointsLeft[i] = pointsSortedByCurrentDim[i];
             }
-            for (int i = mid + 1; i < n; i++) {
+            for (int i = mid + 1; i < n; ++i) {
                 sortedPointsRight[i - mid - 1] = pointsSortedByCurrentDim[i];
             }
 
@@ -450,33 +445,41 @@ namespace RangeTree {
                                                                    std::vector<int>(mid + 1));
                 std::deque<std::vector<int> > redirectionTableRight(redirectionTable.size(),
                                                                     std::vector<int>(n - mid - 1));
-                for (int i = 0; i < redirectionTable.size(); i++) {
+                for (int i = 0, iLength = (int)redirectionTable.size(); i < iLength; ++i) {
                     std::vector<bool> lastOnLeft = onLeft;
 
-                    for (int j = 0; j < numUniquePoints(); j++) {
+                    for (int j = 0, length = numUniquePoints(); j < length; ++j) {
                         onLeft[redirectionTable[i][j]] = lastOnLeft[j];
                     }
 
                     std::vector<int> newRedirect(numUniquePoints());
                     int kLeft = 0, kRight = 0;
-                    for (int j = 0; j < numUniquePoints(); j++) {
-                        if (onLeft[j]) {
+                    for (int j = 0, length = numUniquePoints(); j < length; ++j)
+                    {
+                        if (onLeft[j])
+                        {
                             newRedirect[j] = kLeft;
-                            kLeft++;
-                        } else {
+                            ++kLeft;
+                        }
+                        else
+                        {
                             newRedirect[j] = kRight;
-                            kRight++;
+                            ++kRight;
                         }
                     }
 
                     kLeft = 0, kRight = 0;
-                    for (int j = 0; j < numUniquePoints(); j++) {
-                        if (lastOnLeft[j]) {
+                    for (int j = 0, length = numUniquePoints(); j < length; ++j)
+                    {
+                        if (lastOnLeft[j])
+                        {
                             redirectionTableLeft[i][kLeft] = newRedirect[redirectionTable[i][j]];
-                            kLeft++;
-                        } else {
+                            ++kLeft;
+                        }
+                        else
+                        {
                             redirectionTableRight[i][kRight] = newRedirect[redirectionTable[i][j]];
-                            kRight++;
+                            ++kRight;
                         }
                     }
                 }
@@ -491,26 +494,54 @@ namespace RangeTree {
     * A class representing a single node in a RangeTree. These should not be
     * constructed directly, instead use the RangeTree class.
     */
-    template <typename T, class S>
+    template<typename Scalar = double, typename Value = size_t>
     class RangeTreeNode {
-        static_assert(std::is_arithmetic<T>::value, "Type T must be numeric");
+        static_assert(std::is_arithmetic<Scalar>::value, "Type Scalar must be numeric");
     private:
-        std::shared_ptr<RangeTreeNode<T,S> > left; /**< Contains points <= the comparison point **/
-        std::shared_ptr<RangeTreeNode<T,S> > right; /**< Contains points > the comparison point **/
-        std::shared_ptr<RangeTreeNode<T,S> > treeOnNextDim; /**< Tree on the next dimension **/
-        Point<T,S>* point; /**< The comparison point **/
+        std::shared_ptr<RangeTreeNode<Scalar,Value> > left; /**< Contains points <= the comparison point **/
+        std::shared_ptr<RangeTreeNode<Scalar,Value> > right; /**< Contains points > the comparison point **/
+        std::shared_ptr<RangeTreeNode<Scalar,Value> > treeOnNextDim; /**< Tree on the next dimension **/
+        Point<Scalar,Value>* point; /**< The comparison point **/
         bool isLeaf; /**< Whether or not the point is a leaf **/
         int pointCountSum; /**< Total number of points, counting multiplicities, at leaves of the tree **/
-        PointOrdering<T,S> pointOrdering; /**< Helper to totally order input points **/
+        PointOrdering<Scalar,Value> pointOrdering; /**< Helper to totally order input points **/
 
         // For fractional cascading
-        std::vector<T> pointsLastDimSorted;
-        std::vector<Point<T,S>* > allPointsSorted;
+        std::vector<Scalar> pointsLastDimSorted;
+        std::vector<Point<Scalar,Value>* > allPointsSorted;
         std::vector<int> pointerToGeqLeft;
         std::vector<int> pointerToLeqLeft;
         std::vector<int> pointerToGeqRight;
         std::vector<int> pointerToLeqRight;
         std::vector<int> cumuCountPoints;
+
+		int binarySearchFirstGeq(const Scalar& needle) const {
+			int left = 0, right = static_cast<int>(pointsLastDimSorted.size());
+			while (left < right) {
+				int mid = left + (right - left) / 2;
+				if (pointsLastDimSorted[mid] >= needle) {
+					right = mid;
+				}
+				else {
+					left = mid + 1;
+				}
+			}
+			return left;
+		}
+
+		int binarySearchFirstLeq(const Scalar& needle) const {
+			int left = -1, right = static_cast<int>(pointsLastDimSorted.size()) - 1;
+			while (left < right) {
+				int mid = left + (right - left + 1) / 2;
+				if (pointsLastDimSorted[mid] <= needle) {
+					left = mid;
+				}
+				else {
+					right = mid - 1;
+				}
+			}
+			return left;
+		}
 
     public:
         /**
@@ -522,9 +553,12 @@ namespace RangeTree {
         * @param uniquePoints a collection of points.
         * @return a range tree structure
         */
-        RangeTreeNode(SortedPointMatrix<T,S>& spm,
+        RangeTreeNode(
+            SortedPointMatrix<Scalar, Value>& spm,
                       bool onLeftEdge = true,
-                      bool onRightEdge = true): pointOrdering(spm.getCurrentDim()) {
+            bool onRightEdge = true)
+            : pointOrdering(spm.getCurrentDim())
+        {
             point = spm.getMidPoint();
 
             if (spm.numUniquePoints() == 1) {
@@ -534,12 +568,13 @@ namespace RangeTree {
                 if (spm.getCurrentDim() == point->dim() - 2) {
                     spm.moveToNextDimension();
                 }
-            } else {
+            }
+            else {
                 auto spmPair = spm.splitOnMid();
-                left = std::shared_ptr<RangeTreeNode<T,S> >(
-                        new RangeTreeNode<T,S>(spmPair.first, onLeftEdge, false));
-                right = std::shared_ptr<RangeTreeNode<T,S> >(
-                        new RangeTreeNode<T,S>(spmPair.second, false, onRightEdge));
+                left = std::shared_ptr<RangeTreeNode<Scalar,Value> >(
+                        new RangeTreeNode<Scalar,Value>(spmPair.first, onLeftEdge, false));
+                right = std::shared_ptr<RangeTreeNode<Scalar,Value> >(
+                        new RangeTreeNode<Scalar,Value>(spmPair.second, false, onRightEdge));
                 pointCountSum = left->totalPoints() + right->totalPoints();
 
                 int dim = point->dim();
@@ -548,7 +583,7 @@ namespace RangeTree {
 
                     allPointsSorted = spm.getSortedPointsAtCurrentDim();
                     cumuCountPoints.emplace_back(0);
-                    for (int i = 0; i < allPointsSorted.size(); i++) {
+                    for (size_t i = 0, length = allPointsSorted.size(); i < length; ++i) {
                         pointsLastDimSorted.emplace_back((*allPointsSorted[i])[dim - 1]);
                         cumuCountPoints.emplace_back(cumuCountPoints.back() + allPointsSorted[i]->count());
                     }
@@ -559,7 +594,8 @@ namespace RangeTree {
                     pointerToGeqRight = createGeqPointers(pointsLastDimSorted, rightSorted);
                     pointerToLeqLeft = createLeqPointers(pointsLastDimSorted, leftSorted);
                     pointerToLeqRight = createLeqPointers(pointsLastDimSorted, rightSorted);
-                }  else if (!onLeftEdge && !onRightEdge && spm.getCurrentDim() + 1 != point->dim()) {
+                }
+                else if (!onLeftEdge && !onRightEdge && spm.getCurrentDim() + 1 != point->dim()) {
                         spm.moveToNextDimension();
                         treeOnNextDim = std::shared_ptr<RangeTreeNode>(new RangeTreeNode(spm));
                 }
@@ -567,62 +603,23 @@ namespace RangeTree {
             }
         }
 
-        std::vector<int> createGeqPointers(const std::vector<T>& vec,
-                                           const std::vector<T>& subVec) {
+        std::vector<int> createGeqPointers(const std::vector<Scalar>& vec,
+                                           const std::vector<Scalar>& subVec) {
             std::vector<int> grePointers(vec.size());
-            int k = 0;
-            for (int i = 0; i < vec.size(); i++) {
-                while (k < subVec.size() && subVec[k] < vec[i]) {
-                    k++;
-                }
-                grePointers[i] = k;
+            for (size_t i = 0, length = vec.size(); i < length; ++i) {
+                grePointers[i] = static_cast<int>(std::lower_bound(subVec.begin(), subVec.end(), vec[i]) - subVec.begin());
             }
             return grePointers;
         }
 
-        std::vector<int> createLeqPointers(const std::vector<T>& vec,
-                                           const std::vector<T>& subVec) {
+        std::vector<int> createLeqPointers(const std::vector<Scalar>& vec,
+                                           const std::vector<Scalar>& subVec) {
             std::vector<int> leqPointers(vec.size());
-            int k = static_cast<int>(subVec.size()) - 1;
-            for (int i = static_cast<int>(vec.size()) - 1; i >= 0; i--) {
-                while (k >= 0 && subVec[k] > vec[i]) {
-                    k--;
-                }
-                leqPointers[i] = k;
+            for (int i = (int)vec.size() - 1; i >= 0; --i) {
+				auto it = std::upper_bound(subVec.begin(), subVec.end(), vec[i]);
+				leqPointers[i] = static_cast<int>(std::distance(subVec.begin(), it)) - 1;
             }
             return leqPointers;
-        }
-
-        int binarySearchFirstGeq(T needle, int left, int right) const {
-            if (left == right) {
-                if (needle <= pointsLastDimSorted[left]) {
-                    return left;
-                } else {
-                    return left + 1;
-                }
-            }
-            int mid = (left + right) / 2;
-            if (needle <= pointsLastDimSorted[mid]) {
-                return binarySearchFirstGeq(needle, left, mid);
-            } else {
-                return binarySearchFirstGeq(needle, mid + 1, right);
-            }
-        }
-
-        int binarySearchFirstLeq(T needle, int left, int right) const {
-            if (left == right) {
-                if (needle >= pointsLastDimSorted[left]) {
-                    return left;
-                } else {
-                    return left - 1;
-                }
-            }
-            int mid = (left + right + 1) / 2;
-            if (needle >= pointsLastDimSorted[mid]) {
-                return binarySearchFirstLeq(needle, mid, right);
-            } else {
-                return binarySearchFirstLeq(needle, left, mid - 1);
-            }
         }
 
         /**
@@ -632,7 +629,7 @@ namespace RangeTree {
         * @param compareStartInd the index defining the lexicographic ordering.
         * @return
         */
-        RangeTreeNode(Point<T,S>* pointAtLeaf, int compareStartInd) :
+        RangeTreeNode(Point<Scalar, Value>* pointAtLeaf, const int& compareStartInd) :
                 point(pointAtLeaf), isLeaf(true), pointCountSum(pointAtLeaf->count()), pointOrdering(compareStartInd) {}
 
         /**
@@ -642,25 +639,33 @@ namespace RangeTree {
         *
         * @return the total count.
         */
-        int totalPoints() const {
-            return pointCountSum;
-        }
+        inline int totalPoints() const { return pointCountSum; }
 
         /**
         * Return all points at the leaves of the range tree rooted at this node.
         * @return all the points.
         */
-        std::vector<Point<T,S> > getAllPoints() const {
+        std::vector<Point<Scalar,Value> > getAllPoints() const {
             if (isLeaf) {
-                std::vector<Point<T,S> > vec;
+                std::vector<Point<Scalar,Value> > vec;
                 vec.emplace_back(*point);
                 return vec;
             }
             auto allPointsLeft = left->getAllPoints();
             auto allPointsRight = right->getAllPoints();
 
-            allPointsLeft.insert(allPointsLeft.end(), allPointsRight.begin(), allPointsRight.end());
-            return allPointsLeft;
+            if(allPointsLeft.size() > allPointsRight.size())
+            {
+                allPointsLeft.reserve(allPointsLeft.size() + allPointsRight.size());
+                allPointsLeft.insert(allPointsLeft.end(), allPointsRight.begin(), allPointsRight.end());
+                return allPointsLeft;
+            }
+            else
+            {
+                allPointsRight.reserve(allPointsLeft.size() + allPointsRight.size());
+                allPointsRight.insert(allPointsRight.end(), allPointsLeft.begin(), allPointsLeft.end());
+                return allPointsRight;
+            }
         }
 
         /**
@@ -682,11 +687,10 @@ namespace RangeTree {
         * @param withUpper as for \withLower but for the upper bounds.
         * @return true if the point is in the rectangle, false otherwise.
         */
-        bool pointInRange(const Point<T,S>& point,
-                          const std::vector<T>& lower,
-                          const std::vector<T>& upper) const {
-            for (int i = 0, length = static_cast<int>(point.dim()); i < length; ++i) {
-            //for (int i = 0; i < point.dim(); i++) {
+        bool pointInRange(const Point<Scalar,Value>& point,
+                          const std::vector<Scalar>& lower,
+                          const std::vector<Scalar>& upper) const {
+            for (int i = 0; i < point.dim(); ++i) {
                 if (point[i] < lower[i]) {
                     return false;
                 }
@@ -704,12 +708,13 @@ namespace RangeTree {
         * @param upper
         * @return the count.
         */
-        int countInRange(const std::vector<T>& lower,
-                         const std::vector<T>& upper) const {
+        int countInRange(const std::vector<Scalar>& lower,
+                         const std::vector<Scalar>& upper) const {
             if (isLeaf) {
                 if (pointInRange(*point, lower, upper)) {
                     return totalPoints();
-                } else {
+                }
+                else {
                     return 0;
                 }
             }
@@ -724,14 +729,14 @@ namespace RangeTree {
 
             int dim = point->dim();
             if (compareInd + 2 == dim) {
-                int n = static_cast<int>(pointsLastDimSorted.size());
-                int geqInd = binarySearchFirstGeq(lower.back(), 0, n - 1);
-                int leqInd = binarySearchFirstLeq(upper.back(), 0, n - 1);
+                int n = (int)pointsLastDimSorted.size();
+                int geqInd = binarySearchFirstGeq(lower.back());
+                int leqInd = binarySearchFirstLeq(upper.back());
 
                 if (geqInd > leqInd) {
                     return 0;
                 }
-                std::vector<RangeTreeNode<T, S>* > nodes;
+                std::vector<RangeTreeNode<Scalar, Value>* > nodes;
                 std::vector<std::pair<int,int> > inds;
                 left->leftFractionalCascade(lower,
                                             pointerToGeqLeft[geqInd],
@@ -744,40 +749,46 @@ namespace RangeTree {
                                               nodes,
                                               inds);
                 int sum = 0;
-                for (int i = 0; i < nodes.size(); i++) {
+                for (size_t i = 0, length = nodes.size(); i < length; ++i) {
                     if (nodes[i]->isLeaf) {
                         sum += nodes[i]->totalPoints();
-                    } else {
+                    }
+                    else {
                         sum += nodes[i]->cumuCountPoints[inds[i].second + 1] -
                                 nodes[i]->cumuCountPoints[inds[i].first];
                     }
                 }
                 return sum;
-            } else {
-                std::vector<std::shared_ptr<RangeTreeNode<T, S> > > canonicalNodes;
+            }
+            else {
+                std::vector<std::shared_ptr<RangeTreeNode<Scalar, Value> > > canonicalNodes;
 
                 if (left->isLeaf) {
                     canonicalNodes.emplace_back(left);
-                } else {
+                }
+                else {
                     left->leftCanonicalNodes(lower, canonicalNodes);
                 }
 
                 if (right->isLeaf) {
                     canonicalNodes.emplace_back(right);
-                } else {
+                }
+                else {
                     right->rightCanonicalNodes(upper, canonicalNodes);
                 }
 
                 int numPointsInRange = 0;
-                for (int i = 0; i < canonicalNodes.size(); i++) {
-                    std::shared_ptr<RangeTreeNode<T, S> > node = canonicalNodes[i];
+                for (size_t i = 0, length = canonicalNodes.size(); i < length; ++i) {
+                    std::shared_ptr<RangeTreeNode<Scalar, Value> > node = canonicalNodes[i];
                     if (node->isLeaf) {
                         if (pointInRange(*(node->point), lower, upper)) {
                             numPointsInRange += node->totalPoints();
                         }
-                    } else if (compareInd + 1 == point->dim()) {
+                    }
+                    else if (compareInd + 1 == point->dim()) {
                         numPointsInRange += node->totalPoints();
-                    } else {
+                    }
+                    else {
                         numPointsInRange += node->treeOnNextDim->countInRange(lower, upper);
                     }
                 }
@@ -792,9 +803,10 @@ namespace RangeTree {
         * @param upper
         * @return a std::vector of the Points.
         */
-        std::vector<Point<T,S> > pointsInRange(const std::vector<T>& lower,
-                                               const std::vector<T>& upper) const {
-            std::vector<Point<T,S> > pointsToReturn = {};
+        std::vector<Point<Scalar,Value> > pointsInRange(const std::vector<Scalar>& lower,
+                                               const std::vector<Scalar>& upper) const {
+            std::vector<Point<Scalar,Value> > pointsToReturn;
+
             if (isLeaf) {
                 if (pointInRange(*point, lower, upper)) {
                     pointsToReturn.emplace_back(*point);
@@ -812,14 +824,14 @@ namespace RangeTree {
 
             int dim = point->dim();
             if (compareInd + 2 == dim) {
-                int n = static_cast<int>(pointsLastDimSorted.size());
-                int geqInd = binarySearchFirstGeq(lower.back(), 0, n - 1);
-                int leqInd = binarySearchFirstLeq(upper.back(), 0, n - 1);
+                int n = (int)pointsLastDimSorted.size();
+                int geqInd = binarySearchFirstGeq(lower.back());
+                int leqInd = binarySearchFirstLeq(upper.back());
 
                 if (geqInd > leqInd) {
                     return pointsToReturn;
                 }
-                std::vector<RangeTreeNode<T, S>* > nodes;
+                std::vector<RangeTreeNode<Scalar, Value>* > nodes;
                 std::vector<std::pair<int,int> > inds;
                 left->leftFractionalCascade(lower,
                                             pointerToGeqLeft[geqInd],
@@ -831,41 +843,61 @@ namespace RangeTree {
                                               pointerToLeqRight[leqInd],
                                               nodes,
                                               inds);
-                for (int i = 0; i < nodes.size(); i++) {
-                    if (nodes[i]->isLeaf) {
+
+                for (size_t i = 0, length = nodes.size(); i < length; ++i)
+                {
+                    if (nodes[i]->isLeaf)
+                    {
                         pointsToReturn.emplace_back(*(nodes[i]->point));
-                    } else {
-                        for (int j = inds[i].first; j <= inds[i].second; j++) {
+                    }
+                    else
+                    {
+                        for (int j = inds[i].first; j <= inds[i].second; j++)
+                        {
                             pointsToReturn.emplace_back(*(nodes[i]->allPointsSorted[j]));
                         }
                     }
                 }
                 return pointsToReturn;
-            } else {
-                std::vector<std::shared_ptr<RangeTreeNode<T, S> > > canonicalNodes = {};
+            }
+            else
+            {
+                std::vector<std::shared_ptr<RangeTreeNode<Scalar, Value> > > canonicalNodes;
 
-                if (left->isLeaf) {
+                if (left->isLeaf)
+                {
                     canonicalNodes.emplace_back(left);
-                } else {
+                }
+                else
+                {
                     left->leftCanonicalNodes(lower, canonicalNodes);
                 }
 
-                if (right->isLeaf) {
+                if (right->isLeaf)
+                {
                     canonicalNodes.emplace_back(right);
-                } else {
+                }
+                else {
                     right->rightCanonicalNodes(upper, canonicalNodes);
                 }
 
-                for (int i = 0; i < canonicalNodes.size(); i++) {
-                    std::shared_ptr<RangeTreeNode<T, S> > node = canonicalNodes[i];
-                    if (node->isLeaf) {
-                        if (pointInRange(*(node->point), lower, upper)) {
+                for (int i = 0, length = (int)canonicalNodes.size(); i < length; ++i)
+                {
+                    std::shared_ptr<RangeTreeNode<Scalar, Value> > node = canonicalNodes[i];
+                    if (node->isLeaf)
+                    {
+                        if (pointInRange(*(node->point), lower, upper))
+                        {
                             pointsToReturn.emplace_back(*(node->point));
                         }
-                    } else if (compareInd + 1 == point->dim()) {
+                    }
+                    else if (compareInd + 1 == point->dim())
+                    {
                         auto allPointsAtNode = node->getAllPoints();
                         pointsToReturn.insert(pointsToReturn.end(), allPointsAtNode.begin(), allPointsAtNode.end());
-                    } else {
+                    }
+                    else
+                    {
                         auto allPointsAtNode = node->treeOnNextDim->pointsInRange(lower, upper);
                         pointsToReturn.insert(pointsToReturn.end(), allPointsAtNode.begin(), allPointsAtNode.end());
                     }
@@ -874,10 +906,10 @@ namespace RangeTree {
             }
         }
 
-        void leftFractionalCascade(const std::vector<T>& lower,
+        void leftFractionalCascade(const std::vector<Scalar>& lower,
                                   int geqInd,
                                   int leqInd,
-                                  std::vector<RangeTreeNode<T,S>* >& nodes,
+                                  std::vector<RangeTreeNode<Scalar,Value>* >& nodes,
                                   std::vector<std::pair<int,int> >& inds) {
             if (leqInd < geqInd) {
                 return;
@@ -898,7 +930,8 @@ namespace RangeTree {
                     nodes.emplace_back(right.get());
                     if (right->isLeaf) {
                         inds.emplace_back(std::pair<int,int>(0,0));
-                    } else {
+                    }
+                    else {
                         inds.emplace_back(std::pair<int,int>(geqIndRight,leqIndRight));
                     }
                 }
@@ -908,7 +941,8 @@ namespace RangeTree {
                                             pointerToLeqLeft[leqInd],
                                             nodes,
                                             inds);
-            } else {
+            }
+            else {
                 if (isLeaf) {
                     return;
                 }
@@ -920,10 +954,10 @@ namespace RangeTree {
             }
         }
 
-        void rightFractionalCascade(const std::vector<T>& upper,
+        void rightFractionalCascade(const std::vector<Scalar>& upper,
                                    int geqInd,
                                    int leqInd,
-                                   std::vector<RangeTreeNode<T,S>* >& nodes,
+                                   std::vector<RangeTreeNode<Scalar,Value>* >& nodes,
                                    std::vector<std::pair<int,int> >& inds) {
             if (leqInd < geqInd) {
                 return;
@@ -944,7 +978,8 @@ namespace RangeTree {
                     nodes.emplace_back(left.get());
                     if (left->isLeaf) {
                         inds.emplace_back(std::pair<int,int>(0,0));
-                    } else {
+                    }
+                    else {
                         inds.emplace_back(std::pair<int,int>(geqIndLeft,leqIndLeft));
                     }
                 }
@@ -953,7 +988,8 @@ namespace RangeTree {
                                               pointerToLeqRight[leqInd],
                                               nodes,
                                               inds);
-            } else {
+            }
+            else {
                 if (isLeaf) {
                     return;
                 }
@@ -971,8 +1007,9 @@ namespace RangeTree {
         * @param withLower
         * @param nodes
         */
-        void leftCanonicalNodes(const std::vector<T>& lower,
-                                std::vector<std::shared_ptr<RangeTreeNode<T,S> > >& nodes) {
+        void leftCanonicalNodes(const std::vector<Scalar>& lower,
+            std::vector<std::shared_ptr<RangeTreeNode<Scalar, Value> > >& nodes)
+        {
             if (isLeaf) {
                 throw std::logic_error("Should never have a leaf deciding if its canonical.");
             }
@@ -982,13 +1019,16 @@ namespace RangeTree {
                 nodes.emplace_back(right);
                 if (left->isLeaf) {
                     nodes.emplace_back(left);
-                } else {
+                }
+                else {
                     left->leftCanonicalNodes(lower, nodes);
                 }
-            } else {
+            }
+            else {
                 if (right->isLeaf) {
                     nodes.emplace_back(right);
-                } else {
+                }
+                else {
                     right->leftCanonicalNodes(lower, nodes);
                 }
             }
@@ -999,24 +1039,32 @@ namespace RangeTree {
         * @param upper
         * @param nodes
         */
-        void rightCanonicalNodes(const std::vector<T>& upper,
-                                 std::vector<std::shared_ptr<RangeTreeNode<T,S> > >& nodes) {
+        void rightCanonicalNodes(const std::vector<Scalar>& upper,
+            std::vector<std::shared_ptr<RangeTreeNode<Scalar, Value> > >& nodes)
+        {
             if (isLeaf) {
                 throw std::logic_error("Should never have a leaf deciding if its canonical.");
             }
             int compareInd = pointOrdering.getCompareStartIndex();
             int totalPoints = 0;
-            if (upper[compareInd] >= (*point)[compareInd]) {
+            if (upper[compareInd] >= (*point)[compareInd])
+            {
                 nodes.emplace_back(left);
-                if (right->isLeaf) {
+                if (right->isLeaf)
+                {
                     nodes.emplace_back(right);
-                } else {
+                }
+                else
+                {
                     right->rightCanonicalNodes(upper, nodes);
                 }
-            } else {
-                if (left->isLeaf) {
+            }
+            else {
+                if (left->isLeaf)
+                {
                     nodes.emplace_back(left);
-                } else {
+                }
+                else {
                     left->rightCanonicalNodes(upper, nodes);
                 }
             }
@@ -1061,59 +1109,70 @@ namespace RangeTree {
     * Mark de Berg, Otfried Cheong, Marc van Kreveld, and Mark Overmars. 2008.
     * Computational Geometry: Algorithms and Applications (3rd ed. ed.). TELOS, Santa Clara, CA, USA.
     */
-    template <typename T, class S>
+    template<typename Scalar = double, typename Value = size_t>
     class RangeTree {
-        static_assert(std::is_arithmetic<T>::value, "Type T must be numeric");
+        static_assert(std::is_arithmetic<Scalar>::value, "Type Scalar must be numeric");
     private:
-        std::shared_ptr<RangeTreeNode<T,S> > root;
-        std::vector<std::shared_ptr<Point<T,S> > > savedPoints;
-        std::vector<Point<T,S>* > savedPointsRaw;
+        std::shared_ptr<RangeTreeNode<Scalar,Value> > root;
+        std::vector<std::shared_ptr<Point<Scalar,Value> > > savedPoints;
+        std::vector<Point<Scalar,Value>* > savedPointsRaw;
 
-        std::vector<std::shared_ptr<Point<T,S> > > copyPointsToHeap(const std::vector<Point<T,S> >& points) {
-            std::vector<std::shared_ptr<Point<T,S> > > vecOfPointers;
-            for (int i = 0; i < points.size(); i++) {
-                vecOfPointers.emplace_back(std::shared_ptr<Point<T,S> >(new Point<T,S>(points[i])));
+        std::vector<std::shared_ptr<Point<Scalar,Value> > > copyPointsToHeap(const std::vector<Point<Scalar,Value> >& points) {
+            std::vector<std::shared_ptr<Point<Scalar,Value> > > vecOfPointers;
+            vecOfPointers.reserve(points.size());
+            for (size_t i = 0, length = points.size(); i < length; ++i) {
+                vecOfPointers.emplace_back(std::shared_ptr<Point<Scalar,Value> >(new Point<Scalar,Value>(points[i])));
             }
             return vecOfPointers;
         }
 
-        std::vector<Point<T,S>* > getRawPointers(std::vector<std::shared_ptr<Point<T,S> > >& points) {
-            std::vector<Point<T,S>* > vecOfPointers;
-            for (int i = 0; i < points.size(); i++) {
+        std::vector<Point<Scalar,Value>* > getRawPointers(std::vector<std::shared_ptr<Point<Scalar,Value> > >& points) {
+            std::vector<Point<Scalar,Value>* > vecOfPointers;
+            vecOfPointers.reserve(points.size());
+            for (size_t i = 0, length = points.size(); i < length; ++i) {
                 vecOfPointers.emplace_back(points[i].get());
             }
             return vecOfPointers;
         }
 
-        std::vector<T> getModifiedLower(const std::vector<T>& lower,
+        std::vector<Scalar> getModifiedLower(const std::vector<Scalar>& lower,
                          const std::vector<bool>& withLower) const {
-            std::vector<T> newLower = lower;
-            for (int i = 0; i < lower.size(); i++) {
-                if (std::is_integral<T>::value) {
+            std::vector<Scalar> newLower = lower;
+            for (size_t i = 0, length = lower.size(); i < length; ++i) {
+                if (std::is_integral<Scalar>::value) {
                     if (!withLower[i]) {
-                        newLower[i]++;
+                        ++newLower[i];
                     }
-                } else {
+                    }
+                else {
                     if (!withLower[i]) {
-                        newLower[i] = static_cast<T>(std::nextafter(newLower[i], std::numeric_limits<T>::max()));
-                        //newLower[i] = std::nextafter(newLower[i], std::numeric_limits<T>::max());
+#if _MSC_VER < 1800
+                        newLower[i] = _nextafter(newLower[i], std::numeric_limits<Scalar>::max());
+#else
+                        newLower[i] = std::nextafter(newLower[i], std::numeric_limits<Scalar>::max());
+#endif // 
                     }
                 }
             }
             return newLower;
         }
 
-        std::vector<T> getModifiedUpper(const std::vector<T>& upper,
+        std::vector<Scalar> getModifiedUpper(const std::vector<Scalar>& upper,
                                         const std::vector<bool>& withUpper) const {
-            std::vector<T> newUpper = upper;
-            for (int i = 0; i < upper.size(); i++) {
-                if (std::is_integral<T>::value) {
+            std::vector<Scalar> newUpper = upper;
+            for (size_t i = 0, length = upper.size(); i < length; ++i) {
+                if (std::is_integral<Scalar>::value) {
                     if (!withUpper[i]) {
-                        newUpper[i]--;
+                        --newUpper[i];
                     }
-                } else {
+                }
+                else {
                     if (!withUpper[i]) {
-                        newUpper[i] = static_cast<T>(std::nextafter(newUpper[i], std::numeric_limits<T>::lowest()));
+#if _MSC_VER < 1800
+                        newUpper[i] = _nextafter(newUpper[i], std::numeric_limits<Scalar>::lowest());
+#else
+                        newUpper[i] = std::nextafter(newUpper[i], std::numeric_limits<Scalar>::lowest());
+#endif // 
                     }
                 }
             }
@@ -1130,10 +1189,10 @@ namespace RangeTree {
         *
         * @param points the points from which to create a RangeTree
         */
-        RangeTree(const std::vector<Point<T,S> >& points): savedPoints(copyPointsToHeap(points)),
+        RangeTree(const std::vector<Point<Scalar,Value> >& points): savedPoints(copyPointsToHeap(points)),
                                                            savedPointsRaw(getRawPointers(savedPoints)) {
-            SortedPointMatrix<T,S> spm(savedPointsRaw);
-            root = std::shared_ptr<RangeTreeNode<T,S> >(new RangeTreeNode<T,S>(spm));
+            SortedPointMatrix<Scalar,Value> spm(savedPointsRaw);
+            root = std::shared_ptr<RangeTreeNode<Scalar,Value> >(new RangeTreeNode<Scalar,Value>(spm));
         }
 
         /**
@@ -1154,15 +1213,15 @@ namespace RangeTree {
         * @param withUpper as for \withLower but for the upper bounds.
         * @return the number of points in the rectangle.
         */
-        int countInRange(const std::vector<T>& lower,
-                         const std::vector<T>& upper,
+        int countInRange(const std::vector<Scalar>& lower,
+                         const std::vector<Scalar>& upper,
                          const std::vector<bool>& withLower,
                          const std::vector<bool>& withUpper) const {
             if (lower.size() != upper.size() || lower.size() != withLower.size() ||
                     lower.size() != withUpper.size()) {
                 throw std::logic_error("All vectors inputted to countInRange must have the same length.");
             }
-            for (int i = 0; i < lower.size(); i++) {
+            for (size_t i = 0, length = lower.size(); i < length; ++i) {
                 if (((!withUpper[i] || !withLower[i]) && lower[i] >= upper[i]) ||
                     lower[i] > upper[i]) {
                     return 0;
@@ -1185,8 +1244,8 @@ namespace RangeTree {
 
         * @return the number of points in the rectangle.
         */
-        int countInRange(const std::vector<T>& lower,
-                         const std::vector<T>& upper) const {
+        int countInRange(const std::vector<Scalar>& lower,
+                         const std::vector<Scalar>& upper) const {
             if (lower.size() != upper.size()) {
                 throw std::logic_error("upper and lower in countInRange must have the same length.");
             }
@@ -1212,18 +1271,18 @@ namespace RangeTree {
         * @param withUpper as for \withLower but for the upper bounds.
         * @return the number of points in the rectangle.
         */
-        std::vector<Point<T,S> > pointsInRange(const std::vector<T>& lower,
-                                               const std::vector<T>& upper,
+        std::vector<Point<Scalar,Value> > pointsInRange(const std::vector<Scalar>& lower,
+                                               const std::vector<Scalar>& upper,
                                                const std::vector<bool>& withLower,
                                                const std::vector<bool>& withUpper) const {
             if (lower.size() != upper.size() || lower.size() != withLower.size() ||
                 lower.size() != withUpper.size()) {
                 throw std::logic_error("All vectors inputted to pointsInRange must have the same length.");
             }
-            for (int i = 0; i < lower.size(); i++) {
+            for (size_t i = 0, length = lower.size(); i < length; ++i) {
                 if (((!withUpper[i] || !withLower[i]) && lower[i] >= upper[i]) ||
                     lower[i] > upper[i]) {
-                    return std::vector<Point<T,S> >();
+                    return std::vector<Point<Scalar,Value> >();
                 }
             }
             return root->pointsInRange(getModifiedLower(lower, withLower),
@@ -1239,18 +1298,18 @@ namespace RangeTree {
 * A class which is used to naively count the number of points in a given rectangle. This class is used
 * for testing an benchmarking, it should not be used in practice.
 */
-    template <typename T, class S>
+    template<typename Scalar = double, typename Value = size_t>
     class NaiveRangeCounter {
-        static_assert(std::is_arithmetic<T>::value, "Type T must be numeric");
+        static_assert(std::is_arithmetic<Scalar>::value, "Type Scalar must be numeric");
     private:
-        std::vector<Point<T,S> > points;
+        std::vector<Point<Scalar,Value> > points;
 
-        static bool pointInRange(const Point<T,S>& point,
-                                 const std::vector<T>& lower,
-                                 const std::vector<T>& upper,
+        static bool pointInRange(const Point<Scalar,Value>& point,
+                                 const std::vector<Scalar>& lower,
+                                 const std::vector<Scalar>& upper,
                                  const std::vector<bool>& withLower,
                                  const std::vector<bool>& withUpper) {
-            for (int i = 0, length = static_cast<int>(point.dim()); i < length; ++i) {
+            for (int i = 0; i < point.dim(); ++i) {
                 if (point[i] < lower[i] ||
                     (point[i] == lower[i] && !withLower[i])) {
                     return false;
@@ -1264,14 +1323,14 @@ namespace RangeTree {
         }
 
     public:
-        NaiveRangeCounter(std::vector<Point<T,S> > points): points(points) {}
+        NaiveRangeCounter(std::vector<Point<Scalar,Value> > points): points(points) {}
 
-        int countInRange(const std::vector<T>& lower,
-                         const std::vector<T>& upper,
+        int countInRange(const std::vector<Scalar>& lower,
+                         const std::vector<Scalar>& upper,
                          const std::vector<bool>& withLower,
                          const std::vector<bool>& withUpper) const {
             int count = 0;
-            for (int i = 0; i < points.size(); i++) {
+            for (size_t i = 0, length = points.size(); i < length; ++i) {
                 if (pointInRange(points[i], lower, upper, withLower, withUpper)) {
                     count += points[i].count();
                 }
@@ -1279,12 +1338,12 @@ namespace RangeTree {
             return count;
         }
 
-        std::vector<Point<T,S> > pointsInRange(const std::vector<T>& lower,
-                                               const std::vector<T>& upper,
+        std::vector<Point<Scalar,Value> > pointsInRange(const std::vector<Scalar>& lower,
+                                               const std::vector<Scalar>& upper,
                                                const std::vector<bool>& withLower,
                                                const std::vector<bool>& withUpper) const {
-            std::vector<Point<T,S> > selectedPoints = {};
-            for (int i = 0; i < points.size(); i++) {
+            std::vector<Point<Scalar,Value> > selectedPoints = {};
+            for (size_t i = 0, length = points.size(); i < length; ++i) {
                 if (pointInRange(points[i], lower, upper, withLower, withUpper)) {
                     selectedPoints.emplace_back(points[i]);
                 }

@@ -30,44 +30,44 @@
 
 namespace RT = RangeTree;
 
-template <typename T>
-std::vector<T> abs(std::vector<T> vec) {
+template <typename Scalar>
+std::vector<Scalar> abs(std::vector<Scalar> vec) {
     for (int i = 0; i < vec.size(); i++) {
         vec[i] = std::abs(vec[i]);
     }
     return vec;
 }
 
-template <typename T>
-std::vector<T> add(const std::vector<T>& v0, const std::vector<T>& v1) {
-    std::vector<T> v;
+template <typename Scalar>
+std::vector<Scalar> add(const std::vector<Scalar>& v0, const std::vector<Scalar>& v1) {
+    std::vector<Scalar> v;
     for (int i = 0; i < v0.size(); i++) {
         v.push_back(v0[i] + v1[i]);
     }
     return v;
 }
 
-template <typename T, class S>
-std::vector<RT::Point<T,S>> slice(std::vector<RT::Point<T,S>> points, int start, int end) {
-    std::vector<RT::Point<T,S>> newVec(points.begin() + start, points.begin() + end + 1);
+template <typename Scalar, class Value>
+std::vector<RT::Point<Scalar,Value>> slice(std::vector<RT::Point<Scalar,Value>> points, int start, int end) {
+    std::vector<RT::Point<Scalar,Value>> newVec(points.begin() + start, points.begin() + end + 1);
     return newVec;
 }
 
-template <typename T, class S>
-std::vector<RT::Point<T,S>> sortPoints(std::vector<RT::Point<T,S>> points) {
-    RT::PointOrdering<T,S> pointOrdering(0);
+template <typename Scalar, class Value>
+std::vector<RT::Point<Scalar,Value>> sortPoints(std::vector<RT::Point<Scalar,Value>> points) {
+    RT::PointOrdering<Scalar,Value> pointOrdering(0);
     std::sort(points.begin(), points.end(), pointOrdering);
     return points;
 }
 
-template <typename T, class S>
-std::vector<RT::Point<T,S>> sortAndMerge(std::vector<RT::Point<T,S>> points) {
+template <typename Scalar, class Value>
+std::vector<RT::Point<Scalar,Value>> sortAndMerge(std::vector<RT::Point<Scalar,Value>> points) {
     if (points.size() == 0) {
         return points;
     }
-    RT::PointOrdering<T,S> pointOrdering(0);
+    RT::PointOrdering<Scalar,Value> pointOrdering(0);
     points = sortPoints(points);
-    std::vector<RT::Point<T,S>> sortedPoints = {points[0]};
+    std::vector<RT::Point<Scalar,Value>> sortedPoints = {points[0]};
     int k = 0;
     for (int i = 1; i < points.size(); i++) {
         if (pointOrdering.equals(sortedPoints[k], points[i])) {
@@ -80,8 +80,8 @@ std::vector<RT::Point<T,S>> sortAndMerge(std::vector<RT::Point<T,S>> points) {
     return sortedPoints;
 }
 
-template <typename T, class S>
-void printPoints(std::vector<RT::Point<T,S>> points) {
+template <typename Scalar, class Value>
+void printPoints(std::vector<RT::Point<Scalar,Value>> points) {
     for (int i = 0; i < points.size(); i++) {
         points[i].print();
     }
