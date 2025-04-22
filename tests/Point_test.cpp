@@ -26,7 +26,7 @@
 #include "RangeTree.h"
 #include <doctest.h>
 
-namespace RT = RangeTree;
+namespace RT = Rangetree;
 
 TEST_CASE("point_test")
 {

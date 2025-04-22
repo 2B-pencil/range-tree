@@ -28,7 +28,7 @@
 #include <cmath>
 #include <doctest.h>
 
-namespace RT = RangeTree;
+namespace RT = Rangetree;
 
 template <typename Scalar>
 std::vector<Scalar> abs(std::vector<Scalar> vec) {

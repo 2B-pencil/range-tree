@@ -46,7 +46,7 @@
 #include <algorithm>
 #include <memory>
 
-namespace RangeTree {
+namespace Rangetree {
 
     /**
     * A point in euclidean space.

@@ -26,7 +26,7 @@
 #include "RangeTree.h"
 #include <doctest.h>
 
-namespace RT = RangeTree;
+namespace RT = Rangetree;
 typedef RT::Point<double, int> Point;
 typedef RT::Point<double, int>* PtrToPoint;
 typedef RT::SortedPointMatrix<double, int> SortedPointMatrix;
